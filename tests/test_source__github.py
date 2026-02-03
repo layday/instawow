@@ -10,7 +10,7 @@ import aiohttp.web
 import pytest
 from yarl import URL
 
-from instawow import config_ctx
+from instawow import ctx
 from instawow._sources.github import GithubResolver, _PackagerReleaseJsonFlavor
 from instawow.definitions import Defn, Strategies, Strategy
 from instawow.results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
@@ -126,9 +126,9 @@ async def test_extracting_flavour_from_zip_contents(
     try:
         await github_resolver.resolve_one(zip_defn, None)
     except PkgFilesNotMatching:
-        assert config_ctx.config().product['flavour'] not in flavours
+        assert ctx.config.config().product['flavour'] not in flavours
     else:
-        assert config_ctx.config().product['flavour'] in flavours
+        assert ctx.config.config().product['flavour'] in flavours
 
 
 async def test_repo_with_release_json_release(
@@ -179,7 +179,7 @@ async def test_any_flavour_strategy(
     wrong_flavour = next(
         f
         for f in FlavourVersions
-        if f is not to_flavour_versions(config_ctx.config().product['flavour'])
+        if f is not to_flavour_versions(ctx.config.config().product['flavour'])
     )
     wrong_interface = next(n for r in wrong_flavour.value for n in r)
 
@@ -270,7 +270,7 @@ async def test_mismatched_release_is_skipped_and_logged(
     assert (
         'instawow._sources.github',
         logging.INFO,
-        f'Flavor and interface mismatch: {(interface, to_flavour(config_ctx.config().product["flavour"]))}',
+        f'Flavor and interface mismatch: {(interface, to_flavour(ctx.config.config().product["flavour"]))}',
     ) in caplog.record_tuples
 
 

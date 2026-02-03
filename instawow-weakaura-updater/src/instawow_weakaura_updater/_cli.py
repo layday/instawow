@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import click
 
-from instawow import config_ctx
+from instawow import ctx
 from instawow.cli import run_with_progress
 from instawow.cli._helpers import ManyOptionalChoiceValueParam
 
@@ -19,7 +19,7 @@ def build_weakauras_companion() -> None:
     from .builder import build_addon
     from .config import PluginConfig
 
-    plugin_config = PluginConfig.read(config_ctx.config()).ensure_dirs()
+    plugin_config = PluginConfig.read(ctx.config.config()).ensure_dirs()
     run_with_progress(build_addon(plugin_config))
 
 
@@ -43,7 +43,7 @@ def configure(collapsed_editable_config_values: dict[str, object]) -> None:
         wago_access_token = None
 
     plugin_config = PluginConfig.from_values(
-        {'access_tokens': {'wago': wago_access_token}, 'profile_config': config_ctx.config()}
+        {'access_tokens': {'wago': wago_access_token}, 'profile_config': ctx.config.config()}
     ).write()
 
     click.echo('Configuration written to:')
@@ -59,7 +59,7 @@ def list_installed_wago_auras() -> None:
     from .builder import extract_installed_auras
     from .config import PluginConfig
 
-    plugin_config = PluginConfig.read(config_ctx.config()).ensure_dirs()
+    plugin_config = PluginConfig.read(ctx.config.config()).ensure_dirs()
 
     installed_auras = sorted(
         (account, addon.name, a.id, a.url.parent)

@@ -14,9 +14,8 @@ from yarl import URL
 
 import instawow._logging
 import instawow.config
-import instawow.config_ctx
+import instawow.ctx
 import instawow.http
-import instawow.http_ctx
 from instawow.wow_installations import PRODUCTS, Flavour
 
 from ._fixtures.http import ROUTES, AddRoutes, patch_aiohttp, prepare_mock_server_router
@@ -110,12 +109,12 @@ def iw_profile_config(
 async def _iw_config_ctx(
     iw_profile_config: instawow.config.ProfileConfig,
 ):
-    @instawow.config_ctx.config.set
+    @instawow.ctx.config.config.set
     def token():
         return iw_profile_config
 
     yield
-    instawow.config_ctx.config.reset(token)
+    instawow.ctx.config.config.reset(token)
 
 
 @pytest.fixture
@@ -130,9 +129,9 @@ async def iw_web_client(
 async def _iw_web_client_ctx(
     iw_web_client: instawow.http.CachedSession,
 ):
-    token = instawow.http_ctx.web_client.set(iw_web_client)
+    token = instawow.ctx.http.web_client.set(iw_web_client)
     yield
-    instawow.http_ctx.web_client.reset(token)
+    instawow.ctx.http.web_client.reset(token)
 
 
 @pytest.fixture

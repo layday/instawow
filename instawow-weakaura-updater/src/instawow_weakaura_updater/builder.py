@@ -10,7 +10,7 @@ from typing import Any, Literal, NotRequired, Protocol, TypedDict
 import cattrs
 from yarl import URL
 
-from instawow import http, http_ctx
+from instawow import ctx, http
 from instawow._logging import logger
 from instawow._utils.aio import gather, run_in_thread
 from instawow._utils.attrs import fauxfrozen
@@ -151,7 +151,7 @@ async def _get_remote_auras(
     access_token = plugin_config.access_tokens.wago
     request_headers = {'api-key': access_token} if access_token else None
 
-    async with http_ctx.web_client().post(
+    async with ctx.http.web_client().post(
         _api_base_url / 'check' / aura_addon.api_endpoint,
         expire_after=dt.timedelta(minutes=30),
         headers=request_headers,
@@ -169,7 +169,7 @@ async def _get_remote_auras(
         )
 
     async def fetch_wago_import_string(remote_aura: _WagoApiResponse):
-        async with http_ctx.web_client().get(
+        async with ctx.http.web_client().get(
             (_api_base_url / 'raw' / 'encoded')
             .with_query(id=remote_aura['_id'])
             .with_fragment(str(remote_aura['version'])),

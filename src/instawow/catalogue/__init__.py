@@ -4,7 +4,7 @@ import datetime as dt
 import json
 from functools import lru_cache
 
-from .. import http_ctx, sync_ctx
+from .. import ctx
 from .._logging import logger
 from .._utils.perf import time_op
 from ..progress_reporting import make_download_progress
@@ -30,8 +30,8 @@ def _parse_catalogue(raw_catalogue: bytes):
 async def synchronise() -> cataloguer.ComputedCatalogue:
     "Fetch the catalogue from the interwebs and load it."
     async with (
-        sync_ctx.locks()[_LOAD_CATALOGUE_LOCK],
-        http_ctx.web_client().get(
+        ctx.sync.locks()[_LOAD_CATALOGUE_LOCK],
+        ctx.http.web_client().get(
             _base_catalogue_url,
             expire_after=_catalogue_ttl,
             raise_for_status=True,

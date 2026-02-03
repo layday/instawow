@@ -7,7 +7,7 @@ from shutil import move
 from tempfile import NamedTemporaryFile
 from typing import Literal
 
-from .. import config_ctx, http, http_ctx, sync_ctx
+from .. import ctx, http
 from .._utils.aio import run_in_thread
 from .._utils.file import make_instawowt
 from .._utils.web import file_uri_to_path, is_file_uri
@@ -50,12 +50,12 @@ async def download_pkg_archive(defn: Defn, download_url: str) -> Path:
     if is_file_uri(download_url):
         return Path(file_uri_to_path(download_url))
 
-    async with sync_ctx.locks()[_DOWNLOAD_PKG_LOCK, download_url]:
+    async with ctx.sync.locks()[_DOWNLOAD_PKG_LOCK, download_url]:
         make_request = partial(
-            http_ctx.web_client().get,
+            ctx.http.web_client().get,
             download_url,
             expire_after=http.CACHE_INDEFINITELY,
-            headers=config_ctx.resolvers()[defn.source].make_request_headers(
+            headers=ctx.config.resolvers()[defn.source].make_request_headers(
                 intent=HeadersIntent.Download
             ),
             trace_request_ctx={
@@ -64,7 +64,7 @@ async def download_pkg_archive(defn: Defn, download_url: str) -> Path:
                     unit='bytes',
                     current=0,
                     total=0,
-                    profile=config_ctx.config().profile,
+                    profile=ctx.config.config().profile,
                     defn=defn,
                 )
             },

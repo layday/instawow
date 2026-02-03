@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TypedDict
 
-from . import NAME, http_ctx
+from . import NAME, ctx
 
 
 def get_version() -> str:
@@ -30,7 +30,7 @@ async def is_outdated(current_version: str | None = None) -> tuple[bool, str]:
         return (False, '')
 
     try:
-        async with http_ctx.web_client().get(
+        async with ctx.http.web_client().get(
             'https://pypi.org/simple/instawow',
             expire_after=timedelta(days=1),
             headers={

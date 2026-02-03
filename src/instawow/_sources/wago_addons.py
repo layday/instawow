@@ -9,7 +9,7 @@ from yarl import URL
 
 from instawow.wow_installations import to_flavourful_enum
 
-from .. import config_ctx, http_ctx
+from .. import ctx
 from .._utils.web import as_plain_text_data_url
 from ..definitions import ChangelogFormat, Defn, SourceMetadata, Strategy
 from ..resolvers import (
@@ -78,7 +78,7 @@ class WagoAddonsResolver(BaseResolver):
 
     @AccessToken
     def access_token():
-        return config_ctx.config().global_config.access_tokens.wago_addons, True
+        return ctx.config.config().global_config.access_tokens.wago_addons, True
 
     def get_alias_from_url(self, url: str):
         urly = URL(url)
@@ -89,10 +89,10 @@ class WagoAddonsResolver(BaseResolver):
         return {'Authorization': f'Bearer {self.access_token.get()}'}
 
     async def resolve_one(self, defn: Defn, metadata: None):
-        async with http_ctx.web_client().get(
+        async with ctx.http.web_client().get(
             (self.__wago_external_api_url / 'addons' / defn.alias).with_query(
                 game_version=to_flavourful_enum(
-                    config_ctx.config().product['flavour'], _WagoGameVersion
+                    ctx.config.config().product['flavour'], _WagoGameVersion
                 )
             ),
             expire_after=timedelta(minutes=5),

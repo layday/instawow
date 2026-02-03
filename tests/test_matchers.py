@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from instawow import config_ctx
+from instawow import ctx
 from instawow.definitions import Defn
 from instawow.matchers import (
     AddonFolder,
@@ -20,7 +20,7 @@ pytestmark = pytest.mark.usefixtures('_iw_config_ctx', '_iw_web_client_ctx')
 def write_addons(
     *addons: str,
 ):
-    config = config_ctx.config()
+    config = ctx.config.config()
 
     for addon in addons:
         (config.addon_dir / addon).mkdir()
@@ -28,7 +28,7 @@ def write_addons(
 
 
 def write_masque_addon():
-    masque = config_ctx.config().addon_dir / 'Masque'
+    masque = ctx.config.config().addon_dir / 'Masque'
     masque.mkdir()
     (masque / 'Masque.toc').write_text(
         """\
@@ -42,16 +42,16 @@ def write_masque_addon():
 
 async def test_can_extract_defns_from_addon_folder_toc():
     addon_folder = AddonFolder.from_path(
-        config_ctx.config().product['flavour'], write_masque_addon()
+        ctx.config.config().product['flavour'], write_masque_addon()
     )
     assert addon_folder
     assert addon_folder.get_defns_from_toc_keys(
-        config_ctx.resolvers().addon_toc_key_and_id_pairs
+        ctx.config.resolvers().addon_toc_key_and_id_pairs
     ) == {Defn('curse', '13592'), Defn('wowi', '12097')}
 
 
 async def test_reconcile_invalid_addons_discarded():
-    config = config_ctx.config()
+    config = ctx.config.config()
     folders = get_unreconciled_folders()
 
     config.addon_dir.joinpath('foo').mkdir()

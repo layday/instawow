@@ -9,7 +9,7 @@ from typing import Protocol, Self
 
 import attrs
 
-from .. import config_ctx
+from .. import ctx
 from .._utils.attrs import fauxfrozen
 from .._utils.iteration import bucketise, merge_intersecting_sets, uniq
 from ..catalogue import synchronise as synchronise_catalogue
@@ -63,10 +63,10 @@ class AddonFolder:
 
 
 def _get_unreconciled_folders():
-    config = config_ctx.config()
+    config = ctx.config.config()
     flavour = config.product['flavour']
 
-    with config_ctx.database() as connection:
+    with ctx.config.database() as connection:
         pkg_folders = [n for (n,) in connection.execute('SELECT name FROM pkg_folder').fetchall()]
 
     unreconciled_folder_paths = (
@@ -85,7 +85,7 @@ def get_unreconciled_folders() -> frozenset[AddonFolder]:
 
 
 async def _match_toc_source_ids(leftovers: frozenset[AddonFolder]):
-    resolvers = config_ctx.resolvers()
+    resolvers = ctx.config.resolvers()
     catalogue = await synchronise_catalogue()
 
     def get_catalogue_defns(extracted_defns: Iterable[Defn]):
@@ -120,8 +120,8 @@ async def _match_toc_source_ids(leftovers: frozenset[AddonFolder]):
 
 
 async def _match_folder_name_subsets(leftovers: frozenset[AddonFolder]):
-    flavour = config_ctx.config().product['flavour']
-    resolvers = config_ctx.resolvers()
+    flavour = ctx.config.config().product['flavour']
+    resolvers = ctx.config.resolvers()
     catalogue = await synchronise_catalogue()
 
     leftovers_by_name = {e.name: e for e in leftovers}

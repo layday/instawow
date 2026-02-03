@@ -102,9 +102,11 @@ async def _get_current_products(  # pyright: ignore[reportUnusedFunction]  # pra
 ):
     # See https://wow.tools/ and its spiritual successor https://wago.tools/
 
-    from .http_ctx import web_client
+    from . import ctx
 
-    async with web_client().get(f'https://{region}.version.battle.net/v2/summary') as summary_resp:
+    async with ctx.http.web_client().get(
+        f'https://{region}.version.battle.net/v2/summary'
+    ) as summary_resp:
         products_bpsv = await summary_resp.text()
 
     products = _parse_bpsv(products_bpsv)
@@ -113,7 +115,7 @@ async def _get_current_products(  # pyright: ignore[reportUnusedFunction]  # pra
     )
 
     for product_code in wow_product_codes:
-        async with web_client().get(
+        async with ctx.http.web_client().get(
             f'https://{region}.version.battle.net/{product_code}/versions'
         ) as versions_resp:
             versions_bpsv = await versions_resp.text()
@@ -125,7 +127,7 @@ async def _get_current_products(  # pyright: ignore[reportUnusedFunction]  # pra
 
         product_config_id = region_version['ProductConfig']
 
-        async with web_client().get(
+        async with ctx.http.web_client().get(
             f'https://{region}.cdn.blizzard.com/tpr/configs/data/'
             f'{product_config_id[0:2]}/{product_config_id[2:4]}/{product_config_id}'
         ) as product_config_resp:

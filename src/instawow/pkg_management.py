@@ -6,7 +6,7 @@ from itertools import chain, compress, filterfalse, repeat
 from pathlib import Path
 from typing import Literal, Never
 
-from . import config_ctx, sync_ctx
+from . import ctx
 from ._utils.aio import gather, run_in_thread
 from ._utils.attrs import evolve
 from ._utils.file import trash
@@ -41,7 +41,7 @@ def _with_mutate_lock[**P, T](
 ) -> Callable[P, Awaitable[T]]:
     @wraps(coro_fn)
     async def inner(*args: P.args, **kwargs: P.kwargs) -> T:
-        async with sync_ctx.locks()[_MUTATE_PKGS_LOCK, config_ctx.config().profile]:
+        async with ctx.sync.locks()[_MUTATE_PKGS_LOCK, ctx.config.config().profile]:
             return await coro_fn(*args, **kwargs)
 
     return inner
@@ -64,7 +64,7 @@ def split_results[T](
 
 def get_alias_from_url(url: str) -> tuple[str, str] | None:
     "Attempt to extract a valid ``Defn`` source and alias from a URL."
-    resolvers = config_ctx.resolvers()
+    resolvers = ctx.config.resolvers()
     return next(
         ((r.metadata.id, a) for r in resolvers.values() if (a := r.get_alias_from_url(url))),
         None,
@@ -73,7 +73,7 @@ def get_alias_from_url(url: str) -> tuple[str, str] | None:
 
 async def get_changelog(source: str, url: str) -> str:
     "Retrieve a changelog from a URI."
-    return await config_ctx.resolvers().get_or_dummy(source).get_changelog(url)
+    return await ctx.config.resolvers().get_or_dummy(source).get_changelog(url)
 
 
 def build_pkg_from_pkg_candidate(
@@ -135,7 +135,7 @@ def _check_pkgs_not_exist(defns: Collection[Defn]) -> list[bool]:
     if not defns:
         return []
 
-    with config_ctx.database() as connection, use_tuple_factory(connection) as cursor:
+    with ctx.config.database() as connection, use_tuple_factory(connection) as cursor:
         return [
             e
             for (e,) in cursor.execute(
@@ -162,7 +162,7 @@ def get_pkgs(defns: Collection[Defn] | Literal['all']) -> list[Pkg | None]:
     if defns != 'all' and not defns:
         return []
 
-    with config_ctx.database() as connection:
+    with ctx.config.database() as connection:
         if defns == 'all':
             pkgs = connection.execute(
                 """
@@ -191,7 +191,7 @@ def get_pkgs(defns: Collection[Defn] | Literal['all']) -> list[Pkg | None]:
 def get_pinnable_pkgs(
     defns: Collection[Defn],
 ) -> list[AnyResult[Pkg]]:
-    resolvers = config_ctx.resolvers()
+    resolvers = ctx.config.resolvers()
 
     @resultify
     def validate_pkg(defn: Defn, pkg: Pkg | None):
@@ -214,7 +214,7 @@ def get_pinnable_pkgs(
 def get_pkg_logged_versions(pkg: Pkg) -> list[PkgLoggedVersion]:
     convert = partial(make_db_converter().structure, cl=PkgLoggedVersion)
 
-    with config_ctx.database() as connection:
+    with ctx.config.database() as connection:
         return [
             convert(v)
             for v in connection.execute(
@@ -356,8 +356,8 @@ async def find_equivalent_pkg_defns(
     from .catalogue import synchronise as synchronise_catalogue
     from .matchers import AddonFolder
 
-    config = config_ctx.config()
-    resolvers = config_ctx.resolvers()
+    config = ctx.config.config()
+    resolvers = ctx.config.resolvers()
     flavour = config.product['flavour']
 
     catalogue = await synchronise_catalogue()
@@ -437,7 +437,7 @@ async def resolve(
     if not defns:
         return {}
 
-    resolvers = config_ctx.resolvers()
+    resolvers = ctx.config.resolvers()
 
     defns_by_source = bucketise(defns, key=lambda v: v.source)
 
@@ -468,10 +468,10 @@ def _mutate_install(
     defn: Defn, pkg_candidate: PkgCandidate, archive: Path, *, replace_folders: bool
 ):
     with (
-        config_ctx.resolvers()[defn.source].open_pkg_archive(
+        ctx.config.resolvers()[defn.source].open_pkg_archive(
             archive,
         ) as (top_level_folders, extract),
-        config_ctx.database() as connection,
+        ctx.config.database() as connection,
     ):
         installed_conflicts = connection.execute(
             f"""
@@ -485,7 +485,7 @@ def _mutate_install(
         if installed_conflicts:
             raise PkgConflictsWithInstalled(installed_conflicts)
 
-        config = config_ctx.config()
+        config = ctx.config.config()
 
         if replace_folders:
             trash(config.addon_dir / f for f in top_level_folders)
@@ -509,10 +509,10 @@ def _mutate_install(
 @run_in_thread
 def _mutate_update(defn: Defn, old_pkg: Pkg, pkg_candidate: PkgCandidate, archive: Path):
     with (
-        config_ctx.resolvers()[defn.source].open_pkg_archive(
+        ctx.config.resolvers()[defn.source].open_pkg_archive(
             archive,
         ) as (top_level_folders, extract),
-        config_ctx.database() as connection,
+        ctx.config.database() as connection,
     ):
         installed_conflicts = connection.execute(
             f"""
@@ -527,7 +527,7 @@ def _mutate_update(defn: Defn, old_pkg: Pkg, pkg_candidate: PkgCandidate, archiv
         if installed_conflicts:
             raise PkgConflictsWithInstalled(installed_conflicts)
 
-        config = config_ctx.config()
+        config = ctx.config.config()
 
         unreconciled_conflicts = top_level_folders - {f.name for f in old_pkg.folders} & {
             f.name for f in config.addon_dir.iterdir()
@@ -552,10 +552,10 @@ def _mutate_update(defn: Defn, old_pkg: Pkg, pkg_candidate: PkgCandidate, archiv
 @run_in_thread
 def _mutate_remove(defn: Defn, pkg: Pkg, *, keep_folders: bool):
     if not keep_folders:
-        config = config_ctx.config()
+        config = ctx.config.config()
         trash(config.addon_dir / f.name for f in pkg.folders)
 
-    with config_ctx.database() as connection, transact(connection) as transaction:
+    with ctx.config.database() as connection, transact(connection) as transaction:
         _delete_pkg(pkg, transaction)
 
     return PkgRemoved(pkg)
@@ -563,7 +563,7 @@ def _mutate_remove(defn: Defn, pkg: Pkg, *, keep_folders: bool):
 
 @resultify
 def _mutate_pin(defn: Defn, pkg: Pkg):
-    with config_ctx.database() as connection, transact(connection) as transaction:
+    with ctx.config.database() as connection, transact(connection) as transaction:
         (version_eq,) = transaction.execute(
             """
             UPDATE pkg_options
@@ -597,7 +597,7 @@ async def install(
 ) -> Mapping[Defn, AnyResult[PkgInstalled]]:
     "Install packages from a definition list."
 
-    resolvers = config_ctx.resolvers()
+    resolvers = ctx.config.resolvers()
 
     # We'll weed out installed deps from the results after resolving -
     # doing it this way isn't particularly efficient but avoids having to
@@ -647,7 +647,7 @@ async def replace(
 ) -> Mapping[Defn, AnyResult[PkgInstalled | PkgRemoved]]:
     "Replace installed packages with re-reconciled packages."
 
-    resolvers = config_ctx.resolvers()
+    resolvers = ctx.config.resolvers()
 
     inverse_defns = {v: k for k, v in defns.items()}
     if len(inverse_defns) != len(defns):
@@ -710,8 +710,8 @@ async def update(
 ) -> Mapping[Defn, AnyResult[PkgInstalled | PkgUpdated]]:
     "Update installed packages from a definition list."
 
-    config = config_ctx.config()
-    resolvers = config_ctx.resolvers()
+    config = ctx.config.config()
+    resolvers = ctx.config.resolvers()
 
     if defns == 'all':
         defns_to_pkgs = {p.to_defn(): p for p in get_pkgs(defns) if p}

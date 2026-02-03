@@ -9,7 +9,7 @@ from typing import Literal, NotRequired
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import http_ctx
+from .. import ctx
 from .._logging import logger
 from .._utils.aio import gather
 from .._utils.iteration import uniq
@@ -116,7 +116,7 @@ class WowiResolver(BaseResolver[_WowiDetailsApiItem]):
     async def resolve(self, defns: Sequence[Defn]):
         defn_ids = {d: ''.join(takewhile(str.isdigit, d.alias)) for d in defns}
 
-        async with http_ctx.web_client().get(
+        async with ctx.http.web_client().get(
             (self.__details_api_url / f'{",".join(uniq(filter(None, defn_ids.values())))}.json'),
             expire_after=timedelta(minutes=15),
         ) as response:
@@ -153,7 +153,7 @@ class WowiResolver(BaseResolver[_WowiDetailsApiItem]):
     async def catalogue(self):
         logger.debug(f'Retrieving {self.__list_api_url}')
 
-        async with http_ctx.web_client().get(
+        async with ctx.http.web_client().get(
             self.__list_api_url, raise_for_status=True
         ) as response:
             items: list[_WowiListApiItem] = await response.json()

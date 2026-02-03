@@ -10,7 +10,7 @@ from typing import NotRequired
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import config_ctx, http, http_ctx
+from .. import ctx, http
 from .._logging import logger
 from .._utils.aio import gather
 from .._utils.iteration import uniq
@@ -267,7 +267,7 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
 
     @AccessToken
     def access_token():
-        return config_ctx.config().global_config.access_tokens.cfcore, not _alternative_api_url
+        return ctx.config.config().global_config.access_tokens.cfcore, not _alternative_api_url
 
     def get_alias_from_url(self, url: str):
         urly = URL(url)
@@ -289,7 +289,7 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
 
     async def __get_mod(self, defn: Defn):
         if defn.alias.isdigit():
-            async with http_ctx.web_client().get(
+            async with ctx.http.web_client().get(
                 self.__mod_api_url / defn.alias,
                 expire_after=timedelta(minutes=15),
                 headers=self.make_request_headers(),
@@ -303,7 +303,7 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
                 return mod_response_json['data']
 
         else:
-            async with http_ctx.web_client().get(
+            async with ctx.http.web_client().get(
                 (self.__mod_api_url / 'search').with_query(
                     gameId=_CF_WOW_GAME_ID, slug=defn.alias
                 ),
@@ -335,7 +335,7 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
 
                 files_url /= file_id
 
-        async with http_ctx.web_client().get(
+        async with ctx.http.web_client().get(
             files_url,
             expire_after=timedelta(hours=1),
             headers=self.make_request_headers(),
@@ -360,7 +360,7 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
         if not numeric_ids:
             return await super().resolve(defns)  # Fast path.
 
-        async with http_ctx.web_client().post(
+        async with ctx.http.web_client().post(
             self.__mod_api_url,
             expire_after=timedelta(minutes=5),
             headers=self.make_request_headers(),
@@ -395,7 +395,7 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
         ):
             files = [f for f in files if f['releaseType'] == _CfCoreFileReleaseType.Release]
 
-        desired_flavours = (config_ctx.config().product['flavour'],)
+        desired_flavours = (ctx.config.config().product['flavour'],)
         if defn.strategies[Strategy.AnyFlavour]:
             desired_flavours += (None,)
 
@@ -450,7 +450,7 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
         )
 
     async def get_changelog(self, url: str):
-        async with http_ctx.web_client().get(
+        async with ctx.http.web_client().get(
             url,
             expire_after=http.CACHE_INDEFINITELY,
             headers=self.make_request_headers(),
@@ -484,7 +484,7 @@ class CfCoreResolver(BaseResolver[_CfCoreMod]):
         MAX_OFFSET = 10_000  # The CF API craps out after 9,999 results
 
         get = partial(
-            http_ctx.web_client().get,
+            ctx.http.web_client().get,
             raise_for_status=True,
             timeout=ClientTimeout(total=10),
         )

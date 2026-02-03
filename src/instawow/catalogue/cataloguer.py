@@ -8,7 +8,7 @@ from typing import Any, Self
 import cattrs
 import cattrs.preconf.json
 
-from .. import config_ctx
+from .. import ctx
 from .._utils.attrs import fauxfrozen
 from .._utils.iteration import bucketise
 from .._utils.text import normalise_names
@@ -59,7 +59,7 @@ async def collate(start_date: datetime | None) -> dict[str, Any]:
                     'same_as': [],
                 }
                 | e
-                for r in config_ctx.resolvers().values()
+                for r in ctx.config.resolvers().values()
                 async for e in r.catalogue()
                 if not start_date or e['last_updated'] >= start_date
             ],

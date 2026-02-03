@@ -4,7 +4,7 @@ import datetime as dt
 
 import pytest
 
-from instawow import config_ctx, pkg_management
+from instawow import ctx, pkg_management
 from instawow.catalogue.search import search
 from instawow.definitions import Defn
 from instawow.results import PkgInstalled
@@ -30,7 +30,7 @@ async def test_basic_search():
 async def test_search_flavour_filtering():
     results = await search('atlas loot classic', limit=10)
     has_atlas = ('curse', 'atlaslootclassic') in {(e.source, e.slug or e.id) for e in results}
-    assert has_atlas == (config_ctx.config().product['flavour'] is Flavour.VanillaClassic)
+    assert has_atlas == (ctx.config.config().product['flavour'] is Flavour.VanillaClassic)
 
 
 async def test_search_source_filtering():

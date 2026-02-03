@@ -25,7 +25,7 @@ import toga
 from typing_extensions import TypedDict
 from yarl import URL
 
-from instawow import _github_auth, config_ctx, http_ctx, matchers, pkg_management, sync_ctx
+from instawow import _github_auth, ctx, matchers, pkg_management
 from instawow import results as R
 from instawow._logging import logger
 from instawow._utils.aio import cancel_tasks, run_in_thread
@@ -46,7 +46,7 @@ _toga_handle_var = contextvars.ContextVar[toga.App]('_toga_handle_var')
 @attrs.define(kw_only=True)
 class _GlobalCtx:
     global_config: GlobalConfig
-    profiles: dict[str, config_ctx.ConfigParty]
+    profiles: dict[str, ctx.config.ConfigParty]
     get_progress: Callable[[], ReadOnlyProgressGroup[PkgDownloadProgress]]
     github_auth_manager: _GitHubAuthManager
 
@@ -147,7 +147,7 @@ async def list_profiles() -> dict[str, ProfileConfig]:
 
 @_register_method('config/write_profile')
 async def write_profile_config(profile: str, addon_dir: Path) -> ProfileConfig:
-    async with sync_ctx.locks()[*_LockOperation.ModifyProfile, profile]:
+    async with ctx.sync.locks()[*_LockOperation.ModifyProfile, profile]:
         config = config_converter.structure(
             {
                 'global_config': _global_ctx_var.get().global_config,
@@ -167,7 +167,7 @@ async def write_profile_config(profile: str, addon_dir: Path) -> ProfileConfig:
 @_register_method('config/delete_profile')
 async def delete_profile(profile: str) -> None:
     async with _load_profile(profile) as config_party:
-        async with sync_ctx.locks()[*_LockOperation.ModifyProfile, profile]:
+        async with ctx.sync.locks()[*_LockOperation.ModifyProfile, profile]:
             await run_in_thread(config_party.config.delete)()
             _unload_profiles(profile)
 
@@ -501,9 +501,9 @@ class _GitHubAuthManager(AbstractAsyncContextManager['_GitHubAuthManager']):
         await cancel_tasks([self._finalisation_task])
 
     async def initiate_auth_flow(self):
-        async with sync_ctx.locks()[_LockOperation.InitiateGitHubAuthFlow]:
+        async with ctx.sync.locks()[_LockOperation.InitiateGitHubAuthFlow]:
             if self._device_codes is None:
-                web_client = http_ctx.web_client()
+                web_client = ctx.http.web_client()
 
                 self._device_codes = device_codes = await _github_auth.get_codes(web_client)
 
@@ -555,15 +555,15 @@ async def _load_profile(profile: str):
     try:
         config_party = global_ctx.profiles[profile]
     except KeyError:
-        async with sync_ctx.locks()[*_LockOperation.ModifyProfile, profile]:
+        async with ctx.sync.locks()[*_LockOperation.ModifyProfile, profile]:
             try:
                 config_party = global_ctx.profiles[profile]
             except KeyError:
-                config_party = global_ctx.profiles[profile] = config_ctx.ConfigParty.from_config(
+                config_party = global_ctx.profiles[profile] = ctx.config.ConfigParty.from_config(
                     await _read_profile_config(global_ctx.global_config, profile)
                 )
 
-    config_ctx.config.set(config_party)
+    ctx.config.config.set(config_party)
 
     with logger.contextualize(profile=config_party.config.profile):
         yield config_party
@@ -577,7 +577,7 @@ def _unload_profiles(*profiles: str):
 
 
 async def _update_global_config(update: Callable[[GlobalConfig], GlobalConfig]):
-    async with sync_ctx.locks()[_LockOperation.UpdateGlobalConfig]:
+    async with ctx.sync.locks()[_LockOperation.UpdateGlobalConfig]:
         global_config = update(await _read_global_config())
         await run_in_thread(global_config.write)()
 
@@ -646,7 +646,7 @@ async def create_web_app(toga_handle: toga.App | None = None):
 
     async def ctxify(app: aiohttp.web.Application):
         async with AsyncExitStack() as exit_stack:
-            sync_ctx.locks.set(
+            ctx.sync.locks.set(
                 WeakValueDefaultDictionary[object, asyncio.Lock](asyncio.Lock),
             )
 
@@ -655,7 +655,7 @@ async def create_web_app(toga_handle: toga.App | None = None):
             web_client = await exit_stack.enter_async_context(
                 init_web_client(global_config.dirs.cache, with_progress=True)
             )
-            http_ctx.web_client.set(web_client)
+            ctx.http.web_client.set(web_client)
 
             get_progress, _ = exit_stack.enter_context(
                 make_progress_receiver[PkgDownloadProgress]()

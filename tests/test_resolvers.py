@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from instawow import config_ctx
+from instawow import ctx
 from instawow.definitions import ChangelogFormat, Defn, SourceMetadata, Strategies, Strategy
 from instawow.resolvers import BaseResolver
 from instawow.results import PkgStrategiesUnsupported
@@ -22,7 +22,7 @@ async def test_disabled_reason_forwarded(
 ):
     assert (
         next(
-            (d for d in config_ctx.resolvers().disabled_resolver_reasons.values()),
+            (d for d in ctx.config.resolvers().disabled_resolver_reasons.values()),
             None,
         )
         == disabled_reason

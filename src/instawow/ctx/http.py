@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextvars as cv
 
-from . import http
+from .. import http
 
 _web_client_var = cv.ContextVar['http.CachedSession']('_web_client_var')
 

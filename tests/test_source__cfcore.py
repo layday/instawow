@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-from instawow import config_ctx, pkg_management
+from instawow import ctx, pkg_management
 from instawow._sources.cfcore import CfCoreResolver
 from instawow.definitions import Defn, Strategies, Strategy
 from instawow.results import PkgFilesNotMatching
@@ -53,7 +53,7 @@ async def test_resolve_flavoursome_addon(
 
     result = (await curse_resolver.resolve([defn]))[defn]
 
-    match config_ctx.config().product['flavour']:
+    match ctx.config.config().product['flavour']:
         case Flavour.VanillaClassic:
             assert type(result) is dict
         case _:

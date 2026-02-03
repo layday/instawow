@@ -12,7 +12,7 @@ from typing import Any, overload
 import click
 
 from .. import config as _config
-from .. import config_ctx, definitions, pkg_management
+from .. import ctx, definitions, pkg_management
 from .. import results as _results
 from ._helpers import EnumValueChoiceParam, ManyOptionalChoiceValueParam, SectionedHelpGroup
 
@@ -29,7 +29,7 @@ def report_results(
     *,
     exit: bool = False,
 ) -> None:
-    config = config_ctx.config()
+    config = ctx.config.config()
     if config.global_config.auto_update_check:
         from .._version import is_outdated
 
@@ -64,7 +64,6 @@ def report_results(
 def run_with_progress[T](awaitable: Awaitable[T], **params: Any) -> T:
     import asyncio
 
-    from .. import http_ctx
     from ..http import init_web_client
 
     click_ctx = click.get_current_context().find_root()
@@ -77,14 +76,14 @@ def run_with_progress[T](awaitable: Awaitable[T], **params: Any) -> T:
         make_init_web_client = partial(make_init_web_client, None)
     else:
         make_init_web_client = partial(
-            make_init_web_client, config_ctx.config().global_config.dirs.cache
+            make_init_web_client, ctx.config.config().global_config.dirs.cache
         )
 
     if suppress_progress:
 
         async def run():
             async with make_init_web_client() as web_client:
-                http_ctx.web_client.set(web_client)
+                ctx.http.web_client.set(web_client)
 
                 return await awaitable
 
@@ -128,7 +127,7 @@ def run_with_progress[T](awaitable: Awaitable[T], **params: Any) -> T:
                     cancel_tasks, [asyncio.create_task(observe_progress())]
                 )
 
-                http_ctx.web_client.set(
+                ctx.http.web_client.set(
                     await exit_stack.enter_async_context(make_init_web_client(with_progress=True))
                 )
 
@@ -206,7 +205,7 @@ def _parse_defn_uri_option(
     try:
         defn = definitions.Defn.from_uri(
             value,
-            known_sources=config_ctx.resolvers(),
+            known_sources=ctx.config.resolvers(),
             retain_unknown_source=retain_unknown_source,
         )
     except ValueError as exc:
@@ -312,7 +311,7 @@ def cli(verbosity: int, no_cache: bool, profile: str):
         global_config.dirs.state, verbosity > 0, verbosity > 1, verbosity > 2, profile=profile
     )
 
-    @config_ctx.config.set
+    @ctx.config.config.set
     def _():
         try:
             return _config.ProfileConfig.read(global_config, profile).ensure_dirs()
@@ -575,7 +574,7 @@ def rereconcile(addons: Sequence[definitions.Defn]):
     from ..pkg_db.models import Pkg
     from .prompts import Choice, confirm, select_one
 
-    with config_ctx.database() as connection:
+    with ctx.config.database() as connection:
         query = """
             SELECT *
             FROM pkg
@@ -744,7 +743,7 @@ def list_installed(addons: Sequence[definitions.Defn], output_format: _ListForma
 
     from ..pkg_db.models import Pkg
 
-    with config_ctx.database() as connection:
+    with ctx.config.database() as connection:
         where_clause, where_params = _make_pkg_where_clause_and_params(addons)
         pkg_mappings = connection.execute(
             f"""
@@ -832,7 +831,7 @@ def reveal(addon: definitions.Defn):
 
     from .._utils.file import reveal_folder
 
-    with config_ctx.database() as connection:
+    with ctx.config.database() as connection:
         where_clause, where_params = _make_pkg_where_clause_and_params([addon])
         pkg_folder = connection.execute(
             f"""
@@ -846,7 +845,7 @@ def reveal(addon: definitions.Defn):
         ).fetchone()
 
         if pkg_folder:
-            reveal_folder(config_ctx.config().addon_dir / pkg_folder['name'])
+            reveal_folder(ctx.config.config().addon_dir / pkg_folder['name'])
         else:
             report_results([(addon, _results.PkgNotInstalled())], exit=True)
 
@@ -889,7 +888,7 @@ def view_changelog(addons: Sequence[definitions.Defn], convert: bool, remote: bo
         if pandoc:
             import subprocess
 
-            resolvers = config_ctx.resolvers()
+            resolvers = ctx.config.resolvers()
 
             def real_convert(source: str, changelog: str):
                 match resolvers[source].metadata.changelog_format:
@@ -936,7 +935,7 @@ def view_changelog(addons: Sequence[definitions.Defn], convert: bool, remote: bo
         )
 
     else:
-        with config_ctx.database() as connection:
+        with ctx.config.database() as connection:
             query = """
                 SELECT pkg.source, pkg.slug, pkg.changelog_url
                 FROM pkg
@@ -989,7 +988,7 @@ def cache_clear():
 
     import shutil
 
-    shutil.rmtree(config_ctx.config().global_config.dirs.cache)
+    shutil.rmtree(ctx.config.config().global_config.dirs.cache)
 
 
 @_register_plugin_commands
@@ -1151,17 +1150,16 @@ def configure_profile(editable_config_values: Mapping[_EditableConfigOptions, An
             )
             if confirm('Set up GitHub authentication?').prompt():
                 from .._github_auth import get_codes, poll_for_access_token
-                from ..http_ctx import web_client
 
                 async def github_oauth_flow():
-                    codes = await get_codes(web_client())
+                    codes = await get_codes(ctx.http.web_client())
                     click.echo(
                         f'Navigate to {codes["verification_uri"]} and paste the code below:'
                     )
                     click.echo(f'  {codes["user_code"]}')
                     click.echo('Waiting...')
                     access_token = await poll_for_access_token(
-                        web_client(), codes['device_code'], codes['interval']
+                        ctx.http.web_client(), codes['device_code'], codes['interval']
                     )
                     return access_token
 
@@ -1224,7 +1222,7 @@ def erase_profile():
     from .prompts import confirm
 
     if confirm('Erase profile?').prompt():
-        config_ctx.config().delete()
+        ctx.config.config().delete()
         click.echo('Profile erased.')
 
 
@@ -1241,13 +1239,13 @@ def debug():
     click_ctx.meta[_BYPASS_CONFIG_INIT_META_KEY_] = True
 
     try:
-        active_profile_config = config_ctx.config()
+        active_profile_config = ctx.config.config()
         global_config = active_profile_config.global_config
-        resolvers = config_ctx.resolvers()
+        resolvers = ctx.config.resolvers()
     except UninitialisedConfigError:
         active_profile_config = None
         global_config = _config.GlobalConfig.read()
-        resolvers = config_ctx.make_resolvers()
+        resolvers = ctx.config.make_resolvers()
 
     click.echo(
         json.dumps(
@@ -1279,7 +1277,7 @@ def generate_catalogue(start_date: dt.datetime | None):
 
     from ..catalogue.cataloguer import collate
 
-    @config_ctx.config.set  # pyright: ignore[reportArgumentType]
+    @ctx.config.config.set  # pyright: ignore[reportArgumentType]
     def _():
         return SimpleNamespace(global_config=_config.GlobalConfig.from_values(env=True))
 

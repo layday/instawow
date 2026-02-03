@@ -206,7 +206,7 @@ def test_install_dry_run():
 def test_debug(
     iw_profile_config: ProfileConfig,
 ):
-    from instawow.config_ctx import make_resolvers
+    from instawow.ctx.config import make_resolvers
 
     assert (
         run('debug').stdout

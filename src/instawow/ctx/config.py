@@ -8,11 +8,11 @@ from itertools import chain
 from pathlib import Path
 from typing import Self
 
-from . import _sources, definitions, pkg_db, plugins
-from . import config as _config
-from . import resolvers as _resolvers
-from ._utils.attrs import fauxfrozen
-from .results import AnyResult, PkgSourceDisabled, PkgSourceInvalid, resultify
+from .. import config as _config
+from .. import definitions, pkg_db
+from .. import resolvers as _resolvers
+from .._utils.attrs import fauxfrozen
+from ..results import AnyResult, PkgSourceDisabled, PkgSourceInvalid, resultify
 
 _config_party_var: cv.ContextVar[ConfigParty | Callable[[], _config.ProfileConfig]] = (
     cv.ContextVar('_config_party_var')
@@ -87,11 +87,14 @@ class _ResolverPriorities(dict[str, float]):
 
 
 def make_resolvers():
+    from .. import plugins
+    from .._sources import DEFAULT_RESOLVERS
+
     return _Resolvers(
         r() if callable(r) else r
         for r in chain(
             (r for g in plugins.get_plugin_resolvers() for r in g),
-            _sources.DEFAULT_RESOLVERS,
+            DEFAULT_RESOLVERS,
         )
     )
 

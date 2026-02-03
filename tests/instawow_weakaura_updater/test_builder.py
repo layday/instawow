@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from yarl import URL
 
-from instawow import config_ctx, pkg_management
+from instawow import ctx, pkg_management
 from instawow.definitions import Defn
 from instawow.wow_installations import extract_installation_dir_from_addon_dir
 from instawow_weakaura_updater.builder import (
@@ -27,13 +27,13 @@ def _force_wa_in_retail(monkeypatch: pytest.MonkeyPatch):
 
 @pytest.fixture
 async def plugin_config():
-    return PluginConfig(profile_config=config_ctx.config()).ensure_dirs()
+    return PluginConfig(profile_config=ctx.config.config()).ensure_dirs()
 
 
 @pytest.fixture
 async def saved_vars_path():
     installation_path = extract_installation_dir_from_addon_dir(
-        config_ctx.config().addon_dir,
+        ctx.config.config().addon_dir,
     )
     assert installation_path
     saved_vars_path = installation_path.joinpath('WTF/Account/Instawow/SavedVariables')

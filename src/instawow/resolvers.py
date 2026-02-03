@@ -192,9 +192,9 @@ class BaseResolver(Resolver[_ResolveMetadataT], Protocol):
                 )
 
             case URL(scheme='http' | 'https'):
-                from . import http, http_ctx
+                from . import ctx, http
 
-                async with http_ctx.web_client().get(
+                async with ctx.http.web_client().get(
                     url,
                     expire_after=http.CACHE_INDEFINITELY,
                     headers=self.make_request_headers(),

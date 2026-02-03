@@ -6,7 +6,7 @@ import aiohttp
 import aiohttp.web
 import pytest
 
-from instawow import config_ctx, pkg_management
+from instawow import ctx, pkg_management
 from instawow.definitions import Defn, Strategy
 from instawow.results import (
     InternalError,
@@ -75,7 +75,7 @@ async def test_resolve_rewraps_exception_from_resolve(
     async def resolve_one(defn, metadata):
         raise exception
 
-    resolvers = config_ctx.resolvers()
+    resolvers = ctx.config.resolvers()
     monkeypatch.setattr(resolvers['curse'], 'resolve_one', resolve_one)
 
     defn = Defn('curse', 'masque')
@@ -98,7 +98,7 @@ async def test_resolve_plugin_hook_source():
 
 
 async def test_install_can_replace_unreconciled_folders():
-    masque = config_ctx.config().addon_dir / 'Masque'
+    masque = ctx.config.config().addon_dir / 'Masque'
     masque.mkdir()
 
     defn = Defn('curse', 'masque')
@@ -191,7 +191,7 @@ async def test_update_reinstalls_corrupted_pkgs():
     result = results[defn]
     assert type(result) is PkgInstalled
 
-    folders = [config_ctx.config().addon_dir / f.name for f in result.pkg.folders]
+    folders = [ctx.config.config().addon_dir / f.name for f in result.pkg.folders]
 
     first_folder = folders[0]
     first_folder.rename(first_folder.with_name('foo'))
@@ -212,7 +212,7 @@ async def test_deleting_and_retaining_folders_on_remove(
     [pkg] = pkg_management.get_pkgs([defn])
     assert pkg
 
-    folders = [config_ctx.config().addon_dir / f.name for f in pkg.folders]
+    folders = [ctx.config.config().addon_dir / f.name for f in pkg.folders]
     assert all(f.is_dir() for f in folders)
 
     results = await pkg_management.remove([defn], keep_folders=keep_folders)
@@ -236,7 +236,7 @@ async def test_removing_pkg_with_missing_folders(
     result = results[defn]
     assert type(result) is PkgInstalled
 
-    folders = [config_ctx.config().addon_dir / f.name for f in result.pkg.folders]
+    folders = [ctx.config.config().addon_dir / f.name for f in result.pkg.folders]
     for folder in folders:
         folder.rename(folder.with_name(f'Not_{folder.name}'))
     assert not any(f.is_dir() for f in folders)

@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterator, Set
 from datetime import datetime
 from typing import Literal
 
-from .. import config_ctx
+from .. import ctx
 from .._utils.iteration import bucketise
 from .._utils.text import normalise_names
 from . import synchronise as synchronise_catalogue
@@ -27,7 +27,7 @@ async def search(
     "Search the catalogue for packages by name."
     import rapidfuzz
 
-    resolvers = config_ctx.resolvers()
+    resolvers = ctx.config.resolvers()
     catalogue = await synchronise_catalogue()
 
     ew = 0.5
@@ -47,13 +47,13 @@ async def search(
         from ..pkg_db import use_tuple_factory
 
         with (
-            config_ctx.database() as connection,
+            ctx.config.database() as connection,
             use_tuple_factory(connection) as cursor,
         ):
             return cursor.execute('SELECT source, id FROM pkg').fetchall()
 
     def make_filter_fns() -> Iterator[Callable[[CatalogueEntry], bool]]:
-        flavour = config_ctx.config().product['flavour']
+        flavour = ctx.config.config().product['flavour']
         yield lambda e: flavour in e.game_flavours
 
         if sources:

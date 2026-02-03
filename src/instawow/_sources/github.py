@@ -10,7 +10,7 @@ from typing import Any, Literal
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import config_ctx, http, http_ctx
+from .. import ctx, http
 from .._logging import logger
 from .._utils.aio import cancel_tasks
 from .._utils.web import as_plain_text_data_url, extract_byte_range_offset
@@ -107,7 +107,7 @@ class GithubResolver(BaseResolver):
 
     @AccessToken
     def access_token():
-        return config_ctx.config().global_config.access_tokens.github, False
+        return ctx.config.config().global_config.access_tokens.github, False
 
     def get_alias_from_url(self, url: str):
         urly = URL(url)
@@ -185,7 +185,7 @@ class GithubResolver(BaseResolver):
             for _ in range(2):
                 logger.debug(f'Fetching {directory_offset} bytes from {candidate["name"]}')
 
-                async with http_ctx.web_client().get(
+                async with ctx.http.web_client().get(
                     download_url,
                     expire_after=http.CACHE_INDEFINITELY,
                     headers=download_headers | {hdrs.RANGE: f'bytes={directory_offset}'},
@@ -197,7 +197,7 @@ class GithubResolver(BaseResolver):
                             directory_range_response.status == 501
                             and directory_range_response.reason == 'Unsupported client range'
                         ):
-                            async with http_ctx.web_client().get(
+                            async with ctx.http.web_client().get(
                                 download_url,
                                 expire_after=http.CACHE_INDEFINITELY,
                                 headers=download_headers,
@@ -276,7 +276,7 @@ class GithubResolver(BaseResolver):
                 following_file_offset = following_file.header_offset if following_file else ''
 
                 logger.debug(f'Fetching {main_toc_filename} from {candidate["name"]}')
-                async with http_ctx.web_client().get(
+                async with ctx.http.web_client().get(
                     download_url,
                     expire_after=http.CACHE_INDEFINITELY,
                     headers=download_headers
@@ -314,7 +314,7 @@ class GithubResolver(BaseResolver):
 
         download_headers = self.make_request_headers(HeadersIntent.Download)
 
-        async with http_ctx.web_client().get(
+        async with ctx.http.web_client().get(
             release_json_asset['url'],
             expire_after=timedelta(days=1),
             headers=download_headers,
@@ -404,7 +404,7 @@ class GithubResolver(BaseResolver):
             repo_url = self.__api_url / 'repos' / defn.alias
 
         async def get_project():
-            async with http_ctx.web_client().get(
+            async with ctx.http.web_client().get(
                 repo_url, expire_after=timedelta(hours=1), headers=github_headers
             ) as response:
                 if response.status == 404:
@@ -425,7 +425,7 @@ class GithubResolver(BaseResolver):
             )
 
         async def get_releases():
-            async with http_ctx.web_client().get(
+            async with ctx.http.web_client().get(
                 release_url, expire_after=timedelta(minutes=5), headers=github_headers
             ) as response:
                 if response.status == 404:
@@ -459,7 +459,7 @@ class GithubResolver(BaseResolver):
         if first_release is None:
             raise PkgFilesNotMatching(defn.strategies)
 
-        desired_flavours = (config_ctx.config().product['flavour'],)
+        desired_flavours = (ctx.config.config().product['flavour'],)
         if defn.strategies[Strategy.AnyFlavour]:
             desired_flavours += (None,)
 
@@ -515,7 +515,7 @@ class GithubResolver(BaseResolver):
 
         logger.debug(f'Retrieving {self.__generated_catalogue_csv_url}')
 
-        async with http_ctx.web_client().get(
+        async with ctx.http.web_client().get(
             self.__generated_catalogue_csv_url, raise_for_status=True
         ) as response:
             catalogue_csv = await response.text()

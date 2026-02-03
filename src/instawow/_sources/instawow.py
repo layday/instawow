@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TypedDict
 
-from .. import config_ctx, sync_ctx
+from .. import ctx
 from .._utils.aio import run_in_thread
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..resolvers import BaseResolver, CatalogueEntryCandidate, PkgCandidate
@@ -43,11 +43,11 @@ class InstawowResolver(BaseResolver):
         except StopIteration:
             raise PkgNonexistent from None
 
-        async with sync_ctx.locks()[_READ_PLUGIN_CONFIG_LOCK]:
+        async with ctx.sync.locks()[_READ_PLUGIN_CONFIG_LOCK]:
             plugin_config = self.__plugin_config
             if plugin_config is None:
                 plugin_config = self.__plugin_config = await run_in_thread(PluginConfig.read)(
-                    config_ctx.config()
+                    ctx.config.config()
                 )
 
         build_paths = (

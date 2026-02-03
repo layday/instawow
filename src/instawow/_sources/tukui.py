@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from typing_extensions import TypedDict
 from yarl import URL
 
-from .. import config_ctx, http_ctx
+from .. import ctx
 from .._logging import logger
 from ..definitions import ChangelogFormat, Defn, SourceMetadata
 from ..resolvers import BaseResolver, CatalogueEntryCandidate, PkgCandidate
@@ -48,7 +48,7 @@ class TukuiResolver(BaseResolver):
     __api_url = URL('https://api.tukui.org/v1/')
 
     async def resolve_one(self, defn: Defn, metadata: None):
-        async with http_ctx.web_client().get(
+        async with ctx.http.web_client().get(
             self.__api_url / 'addon' / defn.alias,
             expire_after=timedelta(minutes=5),
         ) as response:
@@ -58,7 +58,7 @@ class TukuiResolver(BaseResolver):
 
             ui_metadata: _TukuiAddon = await response.json()
 
-        flavour_versions = to_flavour_versions(config_ctx.config().product['flavour'])
+        flavour_versions = to_flavour_versions(ctx.config.config().product['flavour'])
         if not any(
             FlavourVersions.from_version_string(p) is flavour_versions
             for p in ui_metadata['patch']
@@ -84,7 +84,7 @@ class TukuiResolver(BaseResolver):
         url = self.__api_url / 'addons'
         logger.debug(f'Retrieving {url}')
 
-        async with http_ctx.web_client().get(url, raise_for_status=True) as response:
+        async with ctx.http.web_client().get(url, raise_for_status=True) as response:
             items: list[_TukuiAddon] = await response.json()
 
         for item in items:
