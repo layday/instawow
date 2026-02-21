@@ -1,47 +1,29 @@
-[build-system]
-requires = ["hatchling", "hatch-vcs"]
-build-backend = "hatchling.build"
-
 [project]
-dynamic = [
-  "version",
-]
 name = "instawow-gui"
-requires-python = ">= 3.12"
 description = "World of Warcraft add-on manager GUI"
+requires-python = ">= 3.12"
 license = "GPL-3.0-or-later"
 authors = [{ name = "layday", email = "layday@protonmail.com" }]
 urls."homepage" = "http://github.com/layday/instawow"
-
 dependencies = [
   "instawow",
+]
+optional-dependencies."full" = [
+  "toga >= 0.5.0",
 ]
 optional-dependencies."skeletal" = [
   "toga-core >= 0.5.0",
 ]
-optional-dependencies."full" = [
-  "toga >= 0.5.0",
+dynamic = [
+  "version",
 ]
 
 [project.entry-points."instawow.plugins"]
 "instawow_gui" = "instawow_gui._plugin"
 
-[tool.hatch.build.targets.sdist]
-only-include = [
-  "/src/instawow_gui",
-]
-exclude = [
-  ".gitignore",
-]
-
-[tool.hatch.build.targets.wheel]
-packages = [
-  "/src/instawow_gui",
-]
-
-[tool.hatch.version]
-source = "vcs"
-raw-options.root = ".."
+[build-system]
+requires = ["hatch-vcs", "hatchling"]
+build-backend = "hatchling.build"
 
 [tool.briefcase]
 project_name = "instawow-gui"
@@ -185,3 +167,20 @@ system_runtime_requires = [
   # Needed to provide WebKit2 at runtime
   "webkit2gtk",
 ]
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+  "/src/instawow_gui",
+]
+exclude = [
+  ".gitignore",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+  "/src/instawow_gui",
+]
+
+[tool.hatch.version]
+source = "vcs"
+raw-options.root = ".."

@@ -1,28 +1,19 @@
-[build-system]
-requires = ["hatchling", "hatch-vcs"]
-build-backend = "hatchling.build"
-
 [project]
-dynamic = [
-  "version",
-]
 name = "instawow"
-requires-python = ">= 3.12"
 description = "World of Warcraft add-on manager"
 readme = "README.rst"
+requires-python = ">= 3.12"
 license = "GPL-3.0-or-later"
 authors = [{ name = "layday", email = "layday@protonmail.com" }]
 urls."homepage" = "http://github.com/layday/instawow"
-
 dependencies = [
-  "aiohttp >= 3.11.16",
   "aiohttp-client-cache >= 0.12.4",
+  "aiohttp >= 3.11.16",
   "attrs >= 24.2.0",
   "cattrs >= 24.1.0",
   "click >= 8.2",
   "diskcache >= 5.6.3",
   "loguru >= 0.7.3",
-  "multidict >= 6.5.0",
   "packaging >= 24.1",
   "pluggy >= 1.5.0",
   "prompt-toolkit >= 3.0.47",
@@ -32,36 +23,21 @@ dependencies = [
   "wcwidth >= 0.2.13",
   "yarl >= 1.18.3",
 ]
-
-[project.entry-points."instawow.plugins"]
-"instawow-weakaura-updater" = "instawow_weakaura_updater._plugin"
+dynamic = [
+  "version",
+]
 
 [project.scripts]
 "instawow" = "instawow.cli:main"
 
-[tool.hatch.build.targets.sdist]
-only-include = [
-  "/src",
-  "/instawow-weakaura-updater/src",
-  "/tests",
-]
-exclude = [
-  ".gitignore",
-]
-
-[tool.hatch.build.targets.wheel]
-packages = [
-  "/src/instawow",
-  "/instawow-weakaura-updater/src/instawow_weakaura_updater",
-]
-
-[tool.hatch.version]
-source = "vcs"
+[project.entry-points."instawow.plugins"]
+"instawow-weakaura-updater" = "instawow_weakaura_updater._plugin"
 
 [dependency-groups]
 dev = [
   "basedpyright",
   "esbonio",
+  "tombi >= 0.7.31",
   { include-group = "test" },
   { include-group = "typing" },
 ]
@@ -77,53 +53,16 @@ lint = [
 test = [
   "anyio",
   "coverage >= 7.10.1",
-  "pytest >= 9",
   "pytest-xdist",
+  "pytest >= 9",
 ]
 typing = [
   "diskcache-stubs",
 ]
 
-[tool.ruff]
-line-length = 99
-
-[tool.ruff.format]
-quote-style = "single"
-
-[tool.ruff.lint]
-select = [
-  "ASYNC", # flake8-async
-  "B0",    # flake8-bugbear (without opinionated rules)
-  "C4",    # flake8-comprehensions
-  "DTZ",   # flake8-datetimez
-  "E",     # pycodestyle
-  "F",     # pyflakes
-  "I",     # isort
-  "PGH",   # pygrep-hooks
-  "PIE",   # flake8-pie
-  "PT",    # flake8-pytest-style
-  "RUF",   # ruff
-  "TRY",   # tryceratops
-  "UP",    # pyupgrade
-  "W",     # pycodestyle
-  "YTT",   # flake8-2020
-]
-ignore = [
-  "E501",   # pycodestyle: line-too-long
-  "TRY003", # tryceratops: raise-vanilla-args
-]
-
-[tool.ruff.lint.isort]
-known-first-party = [
-  "instawow",
-  "instawow_weakaura_updater",
-]
-required-imports = [
-  "from __future__ import annotations",
-]
-
-[tool.ruff.lint.pyupgrade]
-keep-runtime-typing = true
+[build-system]
+requires = ["hatch-vcs", "hatchling"]
+build-backend = "hatchling.build"
 
 [tool.coverage.run]
 source_pkgs = [
@@ -153,13 +92,76 @@ exclude_also = [
   "raise NotImplementedError",
 ]
 
+[tool.hatch.build.targets.sdist]
+only-include = [
+  "/src",
+  "/instawow-weakaura-updater/src",
+  "/tests",
+]
+exclude = [
+  ".gitignore",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+  "/src/instawow",
+  "/instawow-weakaura-updater/src/instawow_weakaura_updater",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
 [tool.pytest]
-testpaths = ["tests"]
-strict = true
+addopts = ["-ra"]
 filterwarnings = [
   "error",
-  "ignore:'encoding' argument not specified:EncodingWarning:toga",
   "ignore:'_UnionGenericAlias' is deprecated and slated for removal in Python 3.17:DeprecationWarning:cattrs._compat",
+  "ignore:'encoding' argument not specified:EncodingWarning:toga",
 ]
-addopts = ["-ra"]
 log_cli_level = "INFO"
+strict = true
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 99
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+select = [
+  "ASYNC",   # flake8-async
+  "B0",      # flake8-bugbear (without opinionated rules)
+  "C4",      # flake8-comprehensions
+  "DTZ",     # flake8-datetimez
+  "E",       # pycodestyle
+  "F",       # pyflakes
+  "I",       # isort
+  "PGH",     # pygrep-hooks
+  "PIE",     # flake8-pie
+  "PT",      # flake8-pytest-style
+  "RUF",     # ruff
+  "TRY",     # tryceratops
+  "UP",      # pyupgrade
+  "W",       # pycodestyle
+  "YTT",     # flake8-2020
+]
+ignore = [
+  "E501",    # pycodestyle: line-too-long
+  "TRY003",  # tryceratops: raise-vanilla-args
+]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+  "instawow",
+  "instawow_weakaura_updater",
+]
+required-imports = [
+  "from __future__ import annotations",
+]
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
+
+[tool.tombi]
+format.rules.trailing-comment-alignment = true
