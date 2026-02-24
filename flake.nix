@@ -21,7 +21,7 @@
           nativeBuildInputs = [
             pkgs.nil
             pkgs.nixd
-            pkgs.nixfmt-rfc-style
+            pkgs.nixfmt
             pkgs.nodejs
             pkgs.uv
             python
