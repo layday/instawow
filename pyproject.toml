@@ -38,6 +38,7 @@ dev = [
   "basedpyright",
   "esbonio",
   "tombi >= 0.7.31",
+  { include-group = "lint" },
   { include-group = "test" },
   { include-group = "typing" },
 ]
