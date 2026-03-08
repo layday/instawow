@@ -18,10 +18,11 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
     - name: Install nox
-      run: uv tool install -p ${{ inputs.python-version }} nox
+      run: uv tool install -p ${INPUTS_PYTHON_VERSION} nox
       shell: bash
       env:
         UV_MANAGED_PYTHON: "1"
+        INPUTS_PYTHON_VERSION: ${{ inputs.python-version }}
     - name: Install Node
       uses: actions/setup-node@v4
       with:
@@ -30,9 +31,11 @@ runs:
       run: >-
         nox
         --error-on-missing-interpreters
-        --force-python ${{ inputs.python-version }}
-        -s build_dists-${{ inputs.python-version }}
+        --force-python ${INPUTS_PYTHON_VERSION}
+        -s build_dists-${INPUTS_PYTHON_VERSION}
       shell: bash
+      env:
+        INPUTS_PYTHON_VERSION: ${{ inputs.python-version }}
     - name: Get version
       id: get-version
       run: |

@@ -14,10 +14,15 @@ jobs:
   build-packages:
     runs-on: ubuntu-latest
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
       - name: Clone the repo
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Build packages
         uses: ./.github/actions/build-packages
 
@@ -36,8 +41,14 @@ jobs:
         #     python: "3.14t"
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
       - name: Clone the repo
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Download pre-built packages
         uses: actions/download-artifact@v8
         with:
@@ -84,8 +95,14 @@ jobs:
         #     python: "3.14t"
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
       - name: Clone the repo
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Download pre-built packages
         uses: actions/download-artifact@v8
         with:
@@ -111,8 +128,14 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
       - name: Clone the repo
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Install uv for Python 3.13
         uses: astral-sh/setup-uv@v7
         with:
@@ -131,8 +154,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
       - name: Clone the repo
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Download coverage data
         uses: actions/download-artifact@v8
         with:

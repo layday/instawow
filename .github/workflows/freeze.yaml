@@ -16,10 +16,15 @@ jobs:
     outputs:
       version: ${{ steps.build-packages.outputs.version }}
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
       - name: Clone the repo
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Build packages
         id: build-packages
         uses: ./.github/actions/build-packages
@@ -44,10 +49,15 @@ jobs:
             target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.build-env.os }}
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
       - name: Clone the repo
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Download pre-built packages
         uses: actions/download-artifact@v8
         with:
@@ -90,10 +100,15 @@ jobs:
       fail-fast: false
     runs-on: ${{ matrix.build-env.os }}
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
       - name: Clone the repo
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Download pre-built packages
         uses: actions/download-artifact@v8
         with:
@@ -129,6 +144,10 @@ jobs:
     needs: [freeze-cli, freeze-gui]
     runs-on: ubuntu-latest
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          config: ${{ vars.PERMISSIONS_CONFIG }}
+
       - name: Download built artifacts
         uses: actions/download-artifact@v8
         with:
@@ -143,9 +162,12 @@ jobs:
           done
         working-directory: release-assets
       - name: Release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          files: |
-            release-assets/instawow-cli-*.zip
-            release-assets/instawow-gui-*/*
+        run: >-
+          gh release create
+          --draft
+          --verify-tag
+          --title ${GITHUB_REF_NAME}
+          ${GITHUB_REF_NAME}
+          instawow-cli-*.zip
+          instawow-gui-*/*
+        working-directory: release-assets
