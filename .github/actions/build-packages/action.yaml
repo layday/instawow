@@ -1,5 +1,8 @@
 ---
 name: Package builder
+
+permissions : {}
+
 description: Build instawow packages.
 inputs:
   python-version:

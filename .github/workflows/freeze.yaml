@@ -1,5 +1,8 @@
 ---
 name: Create instawow executables
+
+permissions : {}
+
 on: [workflow_dispatch]
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,9 +19,9 @@ jobs:
     outputs:
       version: ${{ steps.build-packages.outputs.version }}
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-        with:
-          config: ${{ vars.PERMISSIONS_CONFIG }}
+      # - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      #   with:
+      #     config: ${{ vars.PERMISSIONS_CONFIG }}
 
       - name: Clone the repo
         uses: actions/checkout@v6
@@ -49,9 +52,9 @@ jobs:
             target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.build-env.os }}
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-        with:
-          config: ${{ vars.PERMISSIONS_CONFIG }}
+      # - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      #   with:
+      #     config: ${{ vars.PERMISSIONS_CONFIG }}
 
       - name: Clone the repo
         uses: actions/checkout@v6
@@ -100,9 +103,9 @@ jobs:
       fail-fast: false
     runs-on: ${{ matrix.build-env.os }}
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-        with:
-          config: ${{ vars.PERMISSIONS_CONFIG }}
+      # - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      #   with:
+      #     config: ${{ vars.PERMISSIONS_CONFIG }}
 
       - name: Clone the repo
         uses: actions/checkout@v6
@@ -144,9 +147,9 @@ jobs:
     needs: [freeze-cli, freeze-gui]
     runs-on: ubuntu-latest
     steps:
-      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
-        with:
-          config: ${{ vars.PERMISSIONS_CONFIG }}
+      # - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      #   with:
+      #     config: ${{ vars.PERMISSIONS_CONFIG }}
 
       - name: Download built artifacts
         uses: actions/download-artifact@v8
