@@ -116,10 +116,6 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install nox
         run: uv tool install -p ${{ matrix.python }} nox
-      - name: Install Node for Pyright
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
       - name: Type check
         run: >-
           nox

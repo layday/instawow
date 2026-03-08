@@ -35,7 +35,6 @@ dynamic = [
 
 [dependency-groups]
 dev = [
-  "basedpyright",
   "esbonio",
   "tombi >= 0.7.31",
   { include-group = "lint" },
@@ -58,6 +57,7 @@ test = [
   "pytest >= 9",
 ]
 typing = [
+  "basedpyright",
   "diskcache-stubs",
 ]
 

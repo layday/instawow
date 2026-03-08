@@ -113,7 +113,7 @@ def report_coverage(session: nox.Session):
 
 @nox.session
 def type_check(session: nox.Session):
-    "Run Pyright."
+    "Run basedpyright."
     packages = _locate_or_build_packages(session)
 
     session.install('--group', 'test', '--group', 'typing')
@@ -121,7 +121,7 @@ def type_check(session: nox.Session):
         f'instawow @ {packages["instawow"]["wheel-path"]}',
         f'instawow-gui[skeletal] @ {packages["instawow-gui"]["wheel-path"]}',
     )
-    session.run('npx', 'pyright', external=True)
+    session.run('basedpyright', external=True)
 
 
 @nox.session(python=False)
