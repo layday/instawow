@@ -26,7 +26,6 @@ jobs:
       - name: Clone the repo
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
           persist-credentials: false
       - name: Build packages
         id: build-packages
@@ -59,7 +58,6 @@ jobs:
       - name: Clone the repo
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
           persist-credentials: false
       - name: Download pre-built packages
         uses: actions/download-artifact@v8
@@ -110,7 +108,6 @@ jobs:
       - name: Clone the repo
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
           persist-credentials: false
       - name: Download pre-built packages
         uses: actions/download-artifact@v8
