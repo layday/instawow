@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import ExitStack, closing, contextmanager
 
 type Connection = sqlite3.Connection
@@ -140,13 +140,13 @@ def prepare_database(path: os.PathLike[str]) -> Connection:
 
 
 @contextmanager
-def transact(connection: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
+def transact(connection: sqlite3.Connection) -> Generator[sqlite3.Connection]:
     with connection:
         yield connection
 
 
 @contextmanager
-def use_tuple_factory(connection: sqlite3.Connection) -> Iterator[sqlite3.Cursor]:
+def use_tuple_factory(connection: sqlite3.Connection) -> Generator[sqlite3.Cursor]:
     with closing(connection.cursor()) as cursor:
         cursor.row_factory = None
         yield cursor

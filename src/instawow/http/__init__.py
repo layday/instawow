@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import ssl
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import AsyncExitStack, asynccontextmanager
 from functools import partial
 from typing import Any, NotRequired, Protocol
@@ -99,7 +99,7 @@ def get_ssl_context(cloudflare_compat: bool = False) -> ssl.SSLContext:
 @asynccontextmanager
 async def init_web_client(
     parent_dir: os.PathLike[str] | None, *, with_progress: bool = False
-) -> AsyncIterator[CachedSession]:
+) -> AsyncGenerator[CachedSession]:
     make_client_session = partial(
         aiohttp_client_cache.session.CachedSession,
         connector=aiohttp.TCPConnector(limit_per_host=20, ssl=get_ssl_context()),

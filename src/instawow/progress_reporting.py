@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import contextvars
-from collections.abc import AsyncGenerator, Awaitable, Callable, Iterator, Mapping
+from collections.abc import AsyncGenerator, Awaitable, Callable, Generator, Mapping
 from contextlib import contextmanager
 from functools import partial
 from itertools import count
@@ -57,7 +57,7 @@ class make_progress_receiver(Generic[_ProgressT]):
     @contextmanager
     def __new__(
         cls,
-    ) -> Iterator[
+    ) -> Generator[
         tuple[
             Callable[[], ReadOnlyProgressGroup[_ProgressT]],
             Callable[[], AsyncGenerator[ReadOnlyProgressGroup[_ProgressT]]],

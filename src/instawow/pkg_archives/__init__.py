@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import posixpath
 import zipfile
-from collections.abc import Callable, Iterable, Iterator, Set
+from collections.abc import Callable, Generator, Iterable, Iterator, Set
 from contextlib import contextmanager
 from pathlib import Path
 from typing import NamedTuple
@@ -33,7 +33,7 @@ def make_archive_member_filter_fn(base_dirs: Set[str]) -> Callable[[str], bool]:
 
 
 @contextmanager
-def open_zip_archive(archive_path: Path) -> Iterator[Archive]:
+def open_zip_archive(archive_path: Path) -> Generator[Archive]:
     with zipfile.ZipFile(archive_path) as archive:
         names = archive.namelist()
         top_level_folders = {h for _, h in find_archive_addon_tocs(names)}

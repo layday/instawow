@@ -14,7 +14,7 @@ import cattrs
 from prompt_toolkit.application import Application
 from prompt_toolkit.completion import PathCompleter
 from prompt_toolkit.document import Document
-from prompt_toolkit.filters import IsDone
+from prompt_toolkit.filters.cli import IsDone
 from prompt_toolkit.formatted_text import (
     AnyFormattedText,
     FormattedText,
