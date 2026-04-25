@@ -65,7 +65,7 @@ jobs:
           name: packages
           path: ./dist
       - name: Install uv for Python 3.13
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
           python-version: "3.13"
       - name: Install nox
@@ -118,7 +118,7 @@ jobs:
         run: sudo apt-get update --fix-missing && sudo apt-get install -y flatpak-builder
         if: startsWith(matrix.build-env.os, 'ubuntu-')
       - name: Install uv for Python 3.13
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
           python-version: "3.13"
       - name: Install nox
