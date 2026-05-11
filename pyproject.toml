@@ -7,7 +7,7 @@ license = "GPL-3.0-or-later"
 authors = [{ name = "layday", email = "layday@protonmail.com" }]
 urls."homepage" = "http://github.com/layday/instawow"
 dependencies = [
-  "aiohttp-client-cache >= 0.14.0",
+  "aiohttp-client-cache >= 0.14.2",
   "aiohttp >= 3.13.0",
   "attrs >= 25.4.0",
   "cattrs >= 25.3.0",
