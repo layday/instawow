@@ -3,9 +3,7 @@ from __future__ import annotations
 import inspect
 from collections.abc import Awaitable, Callable, Collection, Set
 from functools import wraps
-from typing import Any, Literal, LiteralString, Protocol, overload
-
-from typing_extensions import TypeIs
+from typing import Any, Literal, LiteralString, Protocol, TypeIs, overload
 
 from .definitions import Strategies, Strategy
 from .pkg_db import models as pkg_models

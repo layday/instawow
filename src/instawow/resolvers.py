@@ -8,15 +8,13 @@ from functools import partial, wraps
 from pathlib import Path
 from typing import Literal, Never, NotRequired, Protocol, Self, overload
 
-from typing_extensions import TypedDict, TypeVar
+from typing_extensions import TypedDict
 from yarl import URL
 
 from . import pkg_archives, wow_installations
 from ._utils.attrs import fauxfrozen
 from .definitions import Defn, SourceMetadata
 from .results import AnyResult, PkgStrategiesUnsupported, resultify
-
-_ResolveMetadataT = TypeVar('_ResolveMetadataT', contravariant=True, default=Never)
 
 
 class _AccessTokenGetter[R](Protocol):  # pragma: no cover
@@ -85,7 +83,7 @@ class _CatalogueEntryCandidate_SameAs(TypedDict):
     id: str
 
 
-class Resolver(Protocol[_ResolveMetadataT]):  # pragma: no cover
+class Resolver[ResolveMetadataT = Never](Protocol):  # pragma: no cover
     metadata: SourceMetadata
     'Static source metadata.'
 
@@ -113,7 +111,7 @@ class Resolver(Protocol[_ResolveMetadataT]):  # pragma: no cover
         "Resolve multiple ``Defn``s into packages."
         ...
 
-    async def resolve_one(self, defn: Defn, metadata: _ResolveMetadataT | None) -> PkgCandidate:
+    async def resolve_one(self, defn: Defn, metadata: ResolveMetadataT | None) -> PkgCandidate:
         "Resolve a ``Defn`` into a package."
         ...
 
@@ -126,7 +124,7 @@ class Resolver(Protocol[_ResolveMetadataT]):  # pragma: no cover
         ...
 
 
-class BaseResolver(Resolver[_ResolveMetadataT], Protocol):
+class BaseResolver[ResolveMetadataT = Never](Resolver[ResolveMetadataT], Protocol):
     access_token: AccessToken[bool] | None = None
     'Access token retriever.'
 
@@ -138,7 +136,7 @@ class BaseResolver(Resolver[_ResolveMetadataT], Protocol):
 
         @reassign_resolve_one
         @wraps(old_resolve_one)
-        async def _(self: Self, defn: Defn, metadata: _ResolveMetadataT | None):
+        async def _(self: Self, defn: Defn, metadata: ResolveMetadataT | None):
             extraneous_strategies = defn.strategies.filled.keys() - self.metadata.strategies
             if extraneous_strategies:
                 raise PkgStrategiesUnsupported(extraneous_strategies)
