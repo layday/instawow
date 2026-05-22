@@ -20,7 +20,6 @@ from aiohttp.tracing import Trace
 from aiohttp.web import Response as Response
 from aiohttp.web_request import BaseRequest
 from aiohttp.web_response import json_response
-from yarl import URL
 
 type _Response = (
     Callable[[], Response]
@@ -41,23 +40,16 @@ class NoRouteFoundError(AssertionError):
 
 @attrs.frozen
 class Route:
-    url: URL = attrs.field(converter=URL)
+    url: re.Pattern[str] = attrs.field(converter=partial(re.compile, flags=re.IGNORECASE))
     response: _Response
     method: str = attrs.field(converter=str.upper, default='GET')
     single_use: bool = False
     path_qs_pattern: re.Pattern[str] = attrs.field(init=False)
 
-    def __attrs_post_init__(self):
-        object.__setattr__(self, 'path_qs_pattern', re.compile(self.url.path_qs, re.IGNORECASE))
-
     def matches(self, request: BaseRequest):
-        if self.method != request.method:
-            return False
-        elif self.url.host != re.escape(request.host):
-            return False
-        elif not self.path_qs_pattern.fullmatch(request.path_qs):
-            return False
-        return True
+        return self.method == request.method and self.url.fullmatch(
+            f'//{request.host}{request.path_qs}'
+        )
 
 
 def prepare_mock_server_router():

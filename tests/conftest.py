@@ -10,7 +10,6 @@ import prompt_toolkit.application
 import prompt_toolkit.input
 import prompt_toolkit.output
 import pytest
-from yarl import URL
 
 import instawow._logging
 import instawow.config
@@ -152,11 +151,10 @@ async def _iw_mock_aiohttp_requests(
     if request.param == 'all':
         routes = ROUTES.values()
     else:
-        urls = set(map(URL, request.param))
-        if not urls.issubset(ROUTES.keys()):
+        if not frozenset(request.param).issubset(ROUTES.keys()):
             raise ValueError('Supplied routes must be subset of all routes')
 
-        routes = (ROUTES[k] for k in ROUTES.keys() & urls)
+        routes = (ROUTES[k] for k in ROUTES.keys() & request.param)
 
     iw_add_routes(*routes)
 

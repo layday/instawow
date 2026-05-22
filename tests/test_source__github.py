@@ -117,7 +117,7 @@ async def test_extracting_flavour_from_zip_contents(
 
     iw_add_routes(
         Route(
-            r'//api\.github\.com/repos(/[^/]*){2}/releases/assets/.*',
+            r'//api\.github\.com/repos(/[^/]+){2}/releases/assets/\d+',
             handle_request,
         )
     )

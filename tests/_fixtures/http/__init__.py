@@ -35,7 +35,7 @@ def _make_addon_zip(*folders: str):
 
 
 ROUTES = {
-    r.url: r
+    r.url.pattern: r
     for r in (
         Route(
             r'//pypi\.org/pypi/instawow/json',
@@ -134,7 +134,7 @@ ROUTES = {
                     if not r['prerelease']
                     for a in r['assets']
                     if a['name'] == 'release.json'
-                )
+                ).removeprefix('https:')
             ),
             _load_json_fixture('github-release-masque-release-json.json'),
         ),
@@ -155,7 +155,7 @@ ROUTES = {
             lambda: Response(body=b'', status=404),
         ),
         Route(
-            r'//api\.github\.com/repos(/[^/]*){2}/releases/assets/.*',
+            r'//api\.github\.com/repos(/[^/]+){2}/releases/assets/\d+',
             lambda: Response(body=_make_addon_zip('Masque')),
         ),
         Route(
