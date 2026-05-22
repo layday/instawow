@@ -21,7 +21,9 @@ class EnumValueChoiceParam[EnumT: Enum](click.Choice[EnumT]):
         return super().normalize_choice(self.__choice_enum(choice), ctx)
 
 
-class ManyOptionalChoiceValueParam[ParamT](click.types.CompositeParamType):
+class ManyOptionalChoiceValueParam[ParamT](
+    click.types.CompositeParamType[Mapping[ParamT, str | None]]
+):
     name = 'optional-choice-value'
 
     def __init__(
