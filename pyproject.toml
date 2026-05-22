@@ -45,7 +45,7 @@ format = [
   "ruff",
 ]
 freeze-gui = [
-  "briefcase == 0.3.25",
+  "briefcase == 0.4.2",
 ]
 lint = [
   { include-group = "format" },
