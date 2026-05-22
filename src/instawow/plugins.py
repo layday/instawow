@@ -37,6 +37,8 @@ def _load_plugins():
     plugin_manager.add_hookspecs(InstawowPlugin)
 
     for name, load_plugin in iter_entry_point_plugins(f'{NAME}.plugins'):
+        if plugin_manager.has_plugin(name):
+            continue
         plugin_manager.register(load_plugin(), name=name)
 
     return plugin_manager.hook
