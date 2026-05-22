@@ -240,10 +240,23 @@ def freeze_gui(session: nox.Session):
     packages = _locate_or_build_packages(session)
 
     spec_path = HERE / 'instawow-gui' / 'pyproject.toml'
-    spec = spec_path.read_text(encoding='utf-8')
-    spec = spec.replace(
-        '"instawow-gui[full]"',
-        f'"instawow-gui[full] @ {Path(packages["instawow-gui"]["wheel-path"]).resolve().as_uri()}"',
+    spec = (
+        (
+            spec_path.read_text(encoding='utf-8')
+            .replace(
+                '"instawow"',
+                f'"instawow @ {Path(packages["instawow"]["wheel-path"]).resolve().as_uri()}"',
+            )
+            .replace(
+                '"instawow-gui[full]"',
+                f'"instawow-gui[full] @ {Path(packages["instawow-gui"]["wheel-path"]).resolve().as_uri()}"',
+            )
+        )
+        + """\
+
+[tool.hatch.metadata]
+allow-direct-references = true
+"""
     )
     if options.release:
         (package_metadata,) = Distribution.discover(
