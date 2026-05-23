@@ -22,7 +22,7 @@
             pkgs.nil
             pkgs.nixd
             pkgs.nixfmt
-            pkgs.nodejs
+            # pkgs.nodejs
             pkgs.uv
             python
           ];

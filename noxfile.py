@@ -50,8 +50,8 @@ def format_code(session: nox.Session):
 
     if not skip_prettier:
         with session.chdir('instawow-gui/frontend'):
-            session.run('npm', 'install', external=True)
-            session.run('npx', 'prettier', '--check' if check else '--write', '.', external=True)
+            session.run('npm', 'install')
+            session.run('npx', 'prettier', '--check' if check else '--write', '.')
 
 
 @nox.session
@@ -121,18 +121,20 @@ def type_check(session: nox.Session):
         f'instawow @ {packages["instawow"]["wheel-path"]}',
         f'instawow-gui[skeletal] @ {packages["instawow-gui"]["wheel-path"]}',
     )
-    session.run('basedpyright', external=True)
+    session.run('basedpyright')
 
 
-@nox.session(python=False)
+@nox.session
 def bundle_frontend(session: nox.Session):
     "Bundle the frontend."
+    session.install('--group', 'bundle-frontend')
+
     with session.chdir('instawow-gui'):
         session.run('git', 'clean', '-fX', 'src/instawow_gui/_frontend', external=True)
 
         with session.chdir('frontend'):
-            session.run('npm', 'install', external=True)
-            session.run('npm', 'run', 'build', external=True)
+            session.run('npm', 'install')
+            session.run('npm', 'run', 'build')
 
 
 @nox.session

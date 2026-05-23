@@ -41,7 +41,11 @@ dev = [
   { include-group = "test" },
   { include-group = "typing" },
 ]
+bundle-frontend = [
+  "nodejs-wheel ~= 24.15",
+]
 format = [
+  "nodejs-wheel ~= 24.15",
   "ruff",
 ]
 freeze-gui = [
