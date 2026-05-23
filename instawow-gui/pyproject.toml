@@ -3,6 +3,7 @@ name = "instawow-gui"
 description = "World of Warcraft add-on manager GUI"
 requires-python = ">= 3.13"
 license = "GPL-3.0-or-later"
+license-files = ["COPYING"]
 authors = [{ name = "layday", email = "layday@protonmail.com" }]
 urls."homepage" = "http://github.com/layday/instawow"
 dependencies = [
