@@ -6,6 +6,7 @@ v7.1.0
 ------
 
 - Exclude WeakAuras add-on from WeakAuras Companion clone under retail.
+- Fix registering plug-ins on Linux distros which symlink ``lib64`` to ``lib``.
 
 CLI
 ~~~
