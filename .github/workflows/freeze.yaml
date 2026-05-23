@@ -170,4 +170,6 @@ jobs:
           ${GITHUB_REF_NAME}
           instawow-cli-*.zip
           instawow-gui-*/*
+        env:
+          GH_TOKEN: ${{ github.token }}
         working-directory: release-assets
