@@ -167,13 +167,13 @@ def build_dists(session: nox.Session):
         )
 
 
-@nox.session
+@nox.session(python=False)
 def publish_dists(session: nox.Session):
     "Upload dists to PyPI."
     session.run('uv', 'publish', 'dist/instawow/*.tar.gz', 'dist/instawow/*.whl')
 
 
-@nox.session(python=False)
+@nox.session
 def freeze_cli(session: nox.Session):
     "Freeze the CLI with PyApp."
     import argparse
