@@ -19,12 +19,15 @@
       {
         devShells.default = pkgs.mkShell {
           nativeBuildInputs = [
-            pkgs.nil
-            pkgs.nixd
-            pkgs.nixfmt
-            # pkgs.nodejs
             pkgs.uv
             python
+            (python.pkgs.nox.overridePythonAttrs (old: {
+              # Propagating dependencies leaks them through $PYTHONPATH which causes issues
+              # when used in nix-shell.
+              postFixup = ''
+                rm $out/nix-support/propagated-build-inputs
+              '';
+            }))
           ];
 
           SOURCE_DATE_EPOCH = "315532800"; # The year 1980
@@ -34,7 +37,7 @@
           shellHook = ''
             set -ex
 
-            VENV_BIN_DIR=$(uvx nox -vv -s dev_env --force-python ${python.pythonVersion})
+            VENV_BIN_DIR=$(nox -vv -s dev_env --force-python ${python.pythonVersion})
             source "$VENV_BIN_DIR/activate"
           '';
         };
