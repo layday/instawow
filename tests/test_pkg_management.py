@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 
 import aiohttp
@@ -90,8 +91,11 @@ async def test_resolve_invalid_source():
     assert type(results[defn]) is PkgSourceInvalid
 
 
+@pytest.mark.skipif(
+    not importlib.util.find_spec('instawow_test_plugin'),
+    reason='instawow_test_plugin not installed',
+)
 async def test_resolve_plugin_hook_source():
-    pytest.importorskip('instawow_test_plugin')
     defn = Defn('me', 'bar')
     results = await pkg_management.resolve([defn])
     assert type(results[defn]) is dict

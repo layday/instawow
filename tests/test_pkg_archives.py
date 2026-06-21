@@ -27,7 +27,7 @@ def test_find_archive_addon_tocs_accepts_multitoc():
     assert {h for _, h in find_archive_addon_tocs(['a', 'a/a_mainline.toc'])} == {'a'}
 
 
-@pytest.mark.parametrize('ext', product('Tt', 'Oo', 'Cc'))
+@pytest.mark.parametrize('ext', tuple(product('Tt', 'Oo', 'Cc')))
 def test_find_archive_addon_tocs_toc_is_case_insensitive(ext: tuple[str, ...]):
     assert {h for _, h in find_archive_addon_tocs([f'a/a.{"".join(ext)}'])} == {'a'}
 

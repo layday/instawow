@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import shutil
 from functools import partial
@@ -578,8 +579,11 @@ def test_show_version():
     assert run('--version').stdout == f'instawow, version {get_version()}\n'
 
 
+@pytest.mark.skipif(
+    not importlib.util.find_spec('instawow_test_plugin'),
+    reason='instawow_test_plugin not installed',
+)
 def test_plugin_hook_command_can_be_invoked():
-    pytest.importorskip('instawow_test_plugin')
     assert run('plugins foo').stdout == 'success!\n'
 
 
