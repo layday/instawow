@@ -734,7 +734,7 @@ def search(
     '-f',
     'output_format',
     type=EnumValueChoiceParam(_ListFormat),
-    default=_ListFormat.Simple,
+    default=str(_ListFormat.Simple),
     show_default=True,
     help='Change the output format.',
 )

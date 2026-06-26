@@ -17,8 +17,8 @@ class EnumValueChoiceParam[EnumT: Enum](click.Choice[EnumT]):
         super().__init__(choices=list(choice_enum))
         self.__choice_enum = choice_enum
 
-    def normalize_choice(self, choice: EnumT, ctx: click.Context | None) -> str:
-        return super().normalize_choice(self.__choice_enum(choice), ctx)
+    def normalize_choice(self, choice: object, ctx: click.Context | None) -> str:
+        return self.__choice_enum(choice).value
 
 
 class ManyOptionalChoiceValueParam[ParamT](
@@ -58,7 +58,7 @@ class ManyOptionalChoiceValueParam[ParamT](
         return dict(do_convert(value))
 
     def get_metavar(self, param: click.Parameter, ctx: click.Context):
-        return f'{{{",".join(map(str, self.__choice_param.choices))}}}[=VALUE]'
+        return f'{self.__choice_param.get_metavar(click.Argument(["__dummy__"], required=True), ctx)}[=VALUE]'
 
 
 class SectionedHelpGroup(click.Group):
