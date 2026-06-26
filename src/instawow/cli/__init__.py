@@ -268,9 +268,9 @@ def _make_pkg_where_clause_and_params(
 
 
 class _ListFormat(enum.StrEnum):
-    Simple = enum.auto()
-    Detailed = enum.auto()
-    Json = enum.auto()
+    Simple = 'Simple'
+    Detailed = 'Detailed'
+    Json = 'Json'
 
 
 @click.group(context_settings={'help_option_names': ('-h', '--help')}, cls=SectionedHelpGroup)
