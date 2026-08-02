@@ -1,7 +1,6 @@
 <script lang="ts">
   import { getContext } from "svelte";
   import { fade } from "svelte/transition";
-  import { type Config } from "../api";
   import { API_KEY, type Api } from "../stores/api.svelte";
   import {
     ACTIVE_PROFILE_KEY,

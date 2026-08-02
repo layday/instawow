@@ -1,8 +1,5 @@
 export type TogaSimulateKeypressAction =
-  | "toggleSearchFilter"
-  | "activateViewInstalled"
-  | "activateViewReconcile"
-  | "activateViewSearch";
+  "toggleSearchFilter" | "activateViewInstalled" | "activateViewReconcile" | "activateViewSearch";
 
 export enum View {
   Installed,
