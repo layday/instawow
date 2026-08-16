@@ -176,5 +176,14 @@ ROUTES = {
             r'//api\.github\.com/repos/28/NoteworthyII/releases\?per_page=10',
             _load_json_fixture('github-release-no-release-json.json'),
         ),
+
+        Route(
+            r'//api\.github\.com/repos/AdiAddons/AdiBags/commits/.*',
+            {'sha': 'abc123def4567890abcdef', 'commit': {'committer': {'date': '2026-06-26T12:00:00Z'}, 'author': {'date': '2026-06-26T12:00:00Z'}}},
+        ),
+        Route(
+            r'//api\.github\.com/repos/[^/]+/[^/]+/commits/.*',
+            {'sha': 'abc123def4567890abcdef', 'commit': {'committer': {'date': '2026-06-26T12:00:00Z'}, 'author': {'date': '2026-06-26T12:00:00Z'}}},
+        ),
     )
 }
