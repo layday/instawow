@@ -56,7 +56,7 @@ jobs:
           name: packages
           path: ./dist
       - name: Install uv for Python ${{ matrix.python }}
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: ${{ matrix.python }}
       - name: Install nox
@@ -109,7 +109,7 @@ jobs:
           name: packages
           path: ./dist
       - name: Install uv for Python ${{ matrix.python }}
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: ${{ matrix.python }}
       - name: Install nox
@@ -133,7 +133,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install uv for Python 3.13
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: "3.13"
       - name: Install nox
@@ -164,7 +164,7 @@ jobs:
           pattern: coverage-data-*
           merge-multiple: true
       - name: Install uv for Python 3.13
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: "3.13"
       - name: Install nox
