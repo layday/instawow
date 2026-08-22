@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import Never
 
 from typing_extensions import TypedDict
 from yarl import URL
@@ -51,7 +50,7 @@ class _WagoAddon(TypedDict):
     authors: list[str]
     download_count: int
     website_url: str  # Page on Wago
-    recent_release: dict[_WagoStability, _WagoAddonRelease] | list[Never]
+    recent_release: dict[_WagoStability, _WagoAddonRelease] | tuple[()]
 
 
 class _WagoAddonRelease(TypedDict):
@@ -104,7 +103,7 @@ class WagoAddonsResolver(BaseResolver):
 
             addon_metadata: _WagoAddon = await response.json()
 
-        recent_releases = dict(addon_metadata['recent_release'])
+        recent_releases = addon_metadata['recent_release'] or {}
         if not defn.strategies[Strategy.AnyReleaseType] and recent_releases.get(
             _WagoStability.Stable
         ):
