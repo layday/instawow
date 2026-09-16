@@ -67,7 +67,7 @@ typing = [
 ]
 
 [build-system]
-requires = ["hatch-vcs", "hatchling"]
+requires = ["hatchling", "versioningit"]
 build-backend = "hatchling.build"
 
 [tool.coverage.run]
@@ -115,7 +115,7 @@ packages = [
 ]
 
 [tool.hatch.version]
-source = "vcs"
+source = "versioningit"
 
 [tool.pytest]
 addopts = ["-ra"]
@@ -171,3 +171,7 @@ keep-runtime-typing = true
 
 [tool.tombi]
 format.rules.trailing-comment-alignment = true
+
+[tool.versioningit.format]
+distance = "{next_version}.dev{distance}+{vcs}{rev}"
+distance-dirty = "{next_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"
