@@ -230,10 +230,10 @@ def get_pkg_logged_versions(pkg: Pkg) -> list[PkgLoggedVersion]:
         ]
 
 
-def _insert_pkg(pkg: Pkg, transaction: Connection) -> None:
+def _insert_pkg(pkg: Pkg, connection: Connection) -> None:
     pkg_values = make_db_converter().unstructure(pkg)
 
-    transaction.execute(
+    connection.execute(
         """
         INSERT INTO pkg (
             source,
@@ -262,7 +262,7 @@ def _insert_pkg(pkg: Pkg, transaction: Connection) -> None:
         """,
         pkg_values,
     )
-    transaction.execute(
+    connection.execute(
         """
         INSERT INTO pkg_options (
             any_flavour,
@@ -281,7 +281,7 @@ def _insert_pkg(pkg: Pkg, transaction: Connection) -> None:
         """,
         pkg_values['options'] | {'pkg_source': pkg_values['source'], 'pkg_id': pkg_values['id']},
     )
-    transaction.executemany(
+    connection.executemany(
         """
         INSERT INTO pkg_folder (
             name,
@@ -300,7 +300,7 @@ def _insert_pkg(pkg: Pkg, transaction: Connection) -> None:
         ],
     )
     if pkg_values['deps']:
-        transaction.executemany(
+        connection.executemany(
             """
             INSERT INTO pkg_dep (
                 id,
@@ -318,7 +318,7 @@ def _insert_pkg(pkg: Pkg, transaction: Connection) -> None:
                 for f in pkg_values['deps']
             ],
         )
-    transaction.execute(
+    connection.execute(
         """
         INSERT OR IGNORE INTO pkg_version_log (
             version,
@@ -499,8 +499,8 @@ def _mutate_install(
         extract(config.addon_dir)
 
         pkg = build_pkg_from_pkg_candidate(defn, pkg_candidate, folders=sorted(top_level_folders))
-        with transact(connection) as transaction:
-            _insert_pkg(pkg, transaction)
+        with transact(connection):
+            _insert_pkg(pkg, connection)
 
     return PkgInstalled(pkg)
 
@@ -541,9 +541,9 @@ def _mutate_update(defn: Defn, old_pkg: Pkg, pkg_candidate: PkgCandidate, archiv
         new_pkg = build_pkg_from_pkg_candidate(
             defn, pkg_candidate, folders=sorted(top_level_folders)
         )
-        with transact(connection) as transaction:
-            _delete_pkg(old_pkg, transaction)
-            _insert_pkg(new_pkg, transaction)
+        with transact(connection):
+            _delete_pkg(old_pkg, connection)
+            _insert_pkg(new_pkg, connection)
 
     return PkgUpdated(old_pkg, new_pkg)
 
@@ -555,16 +555,16 @@ def _mutate_remove(defn: Defn, pkg: Pkg, *, keep_folders: bool):
         config = ctx.config.config()
         trash(config.addon_dir / f.name for f in pkg.folders)
 
-    with ctx.config.database() as connection, transact(connection) as transaction:
-        _delete_pkg(pkg, transaction)
+    with ctx.config.database() as connection, transact(connection):
+        _delete_pkg(pkg, connection)
 
     return PkgRemoved(pkg)
 
 
 @resultify
 def _mutate_pin(defn: Defn, pkg: Pkg):
-    with ctx.config.database() as connection, transact(connection) as transaction:
-        (version_eq,) = transaction.execute(
+    with ctx.config.database() as connection, transact(connection):
+        (version_eq,) = connection.execute(
             """
             UPDATE pkg_options
             SET version_eq = :version_eq

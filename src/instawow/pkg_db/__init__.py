@@ -126,7 +126,7 @@ def _configure(connection: Connection):
 
 
 def prepare_database(path: os.PathLike[str]) -> Connection:
-    connection = sqlite3.connect(path, check_same_thread=False)
+    connection = sqlite3.connect(path, autocommit=True, check_same_thread=False)
     connection.row_factory = sqlite3.Row
     _configure(connection)
 
@@ -140,9 +140,14 @@ def prepare_database(path: os.PathLike[str]) -> Connection:
 
 
 @contextmanager
-def transact(connection: sqlite3.Connection) -> Generator[sqlite3.Connection]:
-    with connection:
-        yield connection
+def transact(connection: sqlite3.Connection) -> Generator[None]:
+    connection.execute('BEGIN')
+    try:
+        yield
+    except BaseException:
+        connection.execute('ROLLBACK')
+    else:
+        connection.execute('COMMIT')
 
 
 @contextmanager

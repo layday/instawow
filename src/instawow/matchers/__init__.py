@@ -67,7 +67,7 @@ def _get_unreconciled_folders():
     flavour = config.product['flavour']
 
     with ctx.config.database() as connection:
-        pkg_folders = [n for (n,) in connection.execute('SELECT name FROM pkg_folder').fetchall()]
+        pkg_folders = [n for (n,) in connection.execute('SELECT name FROM pkg_folder')]
 
     unreconciled_folder_paths = (
         p
