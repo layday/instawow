@@ -78,6 +78,7 @@ class _PackagerReleaseJson_Release_Metadata(TypedDict):
 class _PackagerReleaseJsonFlavor(StrEnum):
     Mainline = 'mainline'
     VanillaClassic = 'classic'
+    ForeverClassic = 'forever'
     TbcClassic = 'bcc'
     WrathClassic = 'wrath'
     TitanClassic = 'titan'

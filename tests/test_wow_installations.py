@@ -28,23 +28,23 @@ def test_can_convert_between_flavour_keyed_enum_and_flavour():
 
 def test_can_extract_flavour_from_version_number():
     assert FlavourVersions.from_version_number(9_50_00) is FlavourVersions.Mainline
-    assert FlavourVersions.from_version_number(4_04_00) is FlavourVersions.CataClassic
     assert FlavourVersions.from_version_number(5_05_00) is FlavourVersions.MistsClassic
+    assert FlavourVersions.from_version_number(1_60_00) is FlavourVersions.ForeverClassic
     assert FlavourVersions.from_version_number(1_23_00) is FlavourVersions.VanillaClassic
 
 
 def test_can_extract_flavour_from_version_string():
     assert FlavourVersions.from_version_string('9.50.0') is FlavourVersions.Mainline
-    assert FlavourVersions.from_version_string('4.4.0') is FlavourVersions.CataClassic
     assert FlavourVersions.from_version_string('5.5.0') is FlavourVersions.MistsClassic
+    assert FlavourVersions.from_version_string('1.60.0') is FlavourVersions.ForeverClassic
     assert FlavourVersions.from_version_string('1.23.0') is FlavourVersions.VanillaClassic
 
 
 def test_can_extract_flavour_from_partial_version_string():
     assert FlavourVersions.from_version_string('9.2') is FlavourVersions.Mainline
-    assert FlavourVersions.from_version_string('4.4') is FlavourVersions.CataClassic
     assert FlavourVersions.from_version_string('5.5') is FlavourVersions.MistsClassic
-    assert FlavourVersions.from_version_string('3') is FlavourVersions.Mainline
+    assert FlavourVersions.from_version_string('1.60') is FlavourVersions.ForeverClassic
+    assert FlavourVersions.from_version_string('1.23') is FlavourVersions.VanillaClassic
 
 
 @pytest.mark.parametrize(

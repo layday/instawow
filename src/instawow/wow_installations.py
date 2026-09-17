@@ -14,6 +14,7 @@ from ._utils.iteration import fill
 class Flavour(StrEnum):
     Mainline = 'mainline'
     VanillaClassic = 'vanilla_classic'
+    ForeverClassic = 'forever_classic'
     TbcClassic = 'tbc_classic'
     WrathClassic = 'wrath_classic'
     TitanClassic = 'titan_classic'
@@ -33,12 +34,13 @@ class FlavourVersions(Enum):
         range(3_00_00, 3_04_00),
         range(4_00_00, 4_04_00),
         range(5_00_00, 5_05_00),
-        range(6_00_00, 13_00_00),
+        range(6_00_00, 14_00_00),
     )
-    VanillaClassic = (range(1_13_00, 2_00_00),)
+    VanillaClassic = (range(1_13_00, 1_60_00),)
+    ForeverClassic = (range(1_60_00, 2_00_00),)
     TbcClassic = (range(2_05_00, 3_00_00),)
-    WrathClassic = (range(3_04_00, 3_08_00),)
-    TitanClassic = (range(3_08_00, 4_00_00),)
+    WrathClassic = (range(3_04_00, 3_80_00),)
+    TitanClassic = (range(3_80_00, 4_00_00),)
     CataClassic = (range(4_04_00, 5_00_00),)
     MistsClassic = (range(5_05_00, 6_00_00),)
 
@@ -56,6 +58,7 @@ class FlavourTocSuffixes(Enum):
     # https://warcraft.wiki.gg/wiki/TOC_format#Multiple_client_flavors
     Mainline = ('Mainline',)
     VanillaClassic = ('Vanilla', 'Classic')
+    ForeverClassic = ('Camelot', 'Forever')  # TODO: Should this include 'Classic'?
     TbcClassic = ('TBC', 'BCC', 'Classic')
     WrathClassic = ('Wrath', 'WOTLKC', 'Classic')
     TitanClassic = WrathClassic
@@ -148,7 +151,7 @@ PRODUCTS: list[_Product] = [
     {'code': 'wow_anniversary', 'flavour': Flavour.TbcClassic, 'subfolder': '_anniversary_'},
     {'code': 'wow_beta', 'flavour': Flavour.Mainline, 'subfolder': '_beta_'},
     {'code': 'wow_classic', 'flavour': Flavour.MistsClassic, 'subfolder': '_classic_'},
-    {'code': 'wow_classic_beta', 'flavour': Flavour.MistsClassic, 'subfolder': '_classic_beta_'},
+    {'code': 'wow_classic_beta', 'flavour': Flavour.ForeverClassic, 'subfolder': '_classic_beta_'},
     {'code': 'wow_classic_era', 'flavour': Flavour.VanillaClassic, 'subfolder': '_classic_era_'},
     {
         'code': 'wow_classic_era_ptr',
@@ -157,7 +160,8 @@ PRODUCTS: list[_Product] = [
     },
     {'code': 'wow_classic_ptr', 'flavour': Flavour.MistsClassic, 'subfolder': '_classic_ptr_'},
     {'code': 'wowdev', 'flavour': Flavour.Mainline, 'subfolder': '_alpha_'},
-    {'code': 'wowdev2', 'flavour': Flavour.VanillaClassic, 'subfolder': '_classic_alpha_'},
+    {'code': 'wowdev2', 'flavour': Flavour.ForeverClassic, 'subfolder': '_classic_alpha_'},
+    {'code': 'wowdev5', 'flavour': Flavour.ForeverClassic, 'subfolder': '_wowdev5_'},
     {'code': 'wowe1', 'flavour': Flavour.Mainline, 'subfolder': '_event1_'},
     {'code': 'wowlivetest', 'flavour': Flavour.Mainline, 'subfolder': '_dark_realm_'},
     {'code': 'wowlivetest2', 'flavour': Flavour.Mainline, 'subfolder': '_dark_realm_2_'},
@@ -166,7 +170,7 @@ PRODUCTS: list[_Product] = [
     {'code': 'wowv10', 'flavour': Flavour.Mainline, 'subfolder': '_vendor10_'},
     {'code': 'wowv2', 'flavour': Flavour.Mainline, 'subfolder': '_vendor2_'},
     {'code': 'wowv3', 'flavour': Flavour.Mainline, 'subfolder': '_vendor3_'},
-    {'code': 'wowv4', 'flavour': Flavour.TitanClassic, 'subfolder': '_vendor4_'},
+    {'code': 'wowv4', 'flavour': Flavour.VanillaClassic, 'subfolder': '_vendor4_'},
     {'code': 'wowv5', 'flavour': Flavour.TbcClassic, 'subfolder': '_vendor5_'},
     {'code': 'wowv6', 'flavour': Flavour.VanillaClassic, 'subfolder': '_vendor6_'},
     {'code': 'wowv7', 'flavour': Flavour.MistsClassic, 'subfolder': '_vendor7_'},

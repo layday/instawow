@@ -124,6 +124,7 @@ class _CfCoreSortableGameVersionTypeId(IntEnum):
 
     Mainline = 517
     VanillaClassic = 67408
+    ForeverClassic = 88568
     TbcClassic = 73246
     WrathClassic = 73713
     TitanClassic = 81212
