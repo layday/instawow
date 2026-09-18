@@ -146,6 +146,7 @@ def transact(connection: sqlite3.Connection) -> Generator[None]:
         yield
     except BaseException:
         connection.execute('ROLLBACK')
+        raise
     else:
         connection.execute('COMMIT')
 
