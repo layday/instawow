@@ -1,6 +1,16 @@
 Changelog
 =========
 
+v7.2.0
+------
+
+- Add support for WoW Forever.
+
+CLI
+~~~
+
+- Fix `list` format capitalisation.
+
 
 v7.1.0
 ------
@@ -12,7 +22,6 @@ CLI
 ~~~
 
 - Merge `debug` subcommands into a single command.
-
 
 
 v7.0.0
