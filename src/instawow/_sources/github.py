@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import zipfile
+import posixpath
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from enum import StrEnum
 from functools import partial
 from itertools import batched, tee, zip_longest
+from pathlib import Path
 from typing import Any, Literal
 
 from typing_extensions import TypedDict
@@ -40,6 +44,7 @@ class _GithubRepo(TypedDict):
     description: str | None
     url: str
     html_url: str
+    default_branch: str
 
 
 class _GithubRelease(TypedDict):
@@ -56,6 +61,20 @@ class _GithubRelease_Asset(TypedDict):
     name: str  # filename
     content_type: str  # mime type
     state: Literal['starter', 'uploaded']
+
+
+class _GithubCommit_Commit(TypedDict):
+    committer: _GithubCommit_User
+    author: _GithubCommit_User
+
+
+class _GithubCommit_User(TypedDict):
+    date: str
+
+
+class _GithubCommit(TypedDict):
+    sha: str
+    commit: _GithubCommit_Commit
 
 
 class _PackagerReleaseJson(TypedDict):
@@ -95,6 +114,7 @@ class GithubResolver(BaseResolver):
                 Strategy.AnyFlavour,
                 Strategy.AnyReleaseType,
                 Strategy.VersionEq,
+                Strategy.Source,
             }
         ),
         changelog_format=ChangelogFormat.Markdown,
@@ -130,6 +150,121 @@ class GithubResolver(BaseResolver):
             headers['Authorization'] = f'token {maybe_access_token}'
 
         return headers
+
+    def open_pkg_archive(self, archive_path: Path):
+        # Source zipballs have an extra top-level prefix like
+        #   SFX-WoW-Masque-abc1234/Masque/Masque.toc
+        # whereas release zips are   Masque/Masque.toc
+        # Handle both by stripping the first component and detecting
+        # toc layouts on the remainder. Also handle flat repos where
+        # the addon files live directly at the repo root.
+        from ..pkg_archives import Archive, find_archive_addon_tocs, make_archive_member_filter_fn
+
+        @contextmanager
+        def _open():
+            with zipfile.ZipFile(archive_path) as zf:
+                names = zf.namelist()
+
+                # Map original -> stripped (without first component)
+                orig_to_stripped: dict[str, str] = {}
+                stripped_names: list[str] = []
+                for n in names:
+                    if '/' not in n:
+                        # Rare: file at archive root (no prefix). Keep as-is.
+                        orig_to_stripped[n] = n
+                        stripped_names.append(n)
+                    else:
+                        _, _, rest = n.partition('/')
+                        if not rest:
+                            continue  # top-level folder itself
+                        orig_to_stripped[n] = rest
+                        stripped_names.append(rest)
+
+                # Nested case: stripped names contain Foo/Foo.toc (count == 1)
+                top_nested = {h for _, h in find_archive_addon_tocs(stripped_names)}
+
+                # Flat case: stripped names contain a root-level *.toc
+                flat_cands: list[tuple[str, str]] = []
+                for s in stripped_names:
+                    if '/' not in s and s.lower().endswith('.toc'):
+                        base = s[:-4]
+                        if base:
+                            flat_cands.append((s, base))
+
+                if top_nested:
+                    top_level_folders = top_nested
+
+                    def extract(parent_path: Path):
+                        for orig, stripped in orig_to_stripped.items():
+                            if not stripped:
+                                continue
+                            head = stripped.split('/', 1)[0]
+                            if head in top_level_folders:
+                                dest = parent_path / stripped
+                                if orig.endswith('/'):
+                                    dest.mkdir(parents=True, exist_ok=True)
+                                else:
+                                    dest.parent.mkdir(parents=True, exist_ok=True)
+                                    dest.write_bytes(zf.read(orig))
+
+                    yield Archive(top_level_folders, extract)
+                    return
+
+                if flat_cands:
+                    # If multiple flat addons at root (unlikely), expose all.
+                    # For extraction we put everything under the first base when single.
+                    top_level_folders = {b for _, b in flat_cands}
+
+                    # Heuristic for single flat addon: place all files under that folder
+                    single_base = next(iter(top_level_folders)) if len(top_level_folders) == 1 else None
+
+                    def extract_flat(parent_path: Path):
+                        if single_base:
+                            # Whole repo is the addon (flat layout)
+                            for orig, stripped in orig_to_stripped.items():
+                                if not stripped:
+                                    continue
+                                # Skip hidden / meta that shouldn't ship inside addon dir
+                                # (keep minimal but avoid .github polluting)
+                                if stripped.startswith('.github/') or stripped == '.github':
+                                    continue
+                                dest = parent_path / single_base / stripped
+                                if orig.endswith('/'):
+                                    dest.mkdir(parents=True, exist_ok=True)
+                                else:
+                                    dest.parent.mkdir(parents=True, exist_ok=True)
+                                    dest.write_bytes(zf.read(orig))
+                        else:
+                            # Multiple flat tocs: extract each toc's companion files?
+                            # Fallback: same as single using folder-per-toc grouping is complex;
+                            # extract each stripped toc at parent level inside its own folder
+                            # and other files at root of whichever toc they belong to is ambiguous.
+                            # We treat each toc as its own folder containing only the toc file for now.
+                            for toc_file, base in flat_cands:
+                                for orig, stripped in orig_to_stripped.items():
+                                    if stripped == toc_file:
+                                        dest = parent_path / base / stripped
+                                        dest.parent.mkdir(parents=True, exist_ok=True)
+                                        dest.write_bytes(zf.read(orig))
+
+                    yield Archive(top_level_folders, extract_flat)
+                    return
+
+                # Fallback to original logic: normal release zip (no zipball prefix)
+                top_orig = {h for _, h in find_archive_addon_tocs(names)}
+                if top_orig:
+                    def extract_orig(parent_path: Path):
+                        should = make_archive_member_filter_fn(top_orig)
+                        zf.extractall(parent_path, members=(n for n in names if should(n)))
+
+                    yield Archive(top_orig, extract_orig)
+                    return
+
+                # No recognizable layout
+                yield Archive(set(), lambda p: None)
+                return
+
+        return _open()
 
     async def __find_match_from_zip_contents(
         self,
@@ -395,6 +530,54 @@ class GithubResolver(BaseResolver):
             if asset:
                 return (release, asset)
 
+    async def __get_commit(self, repo_url: URL, ref: str, headers: dict[str, str]) -> _GithubCommit:
+        # GET /repos/{owner}/{repo}/commits/{ref}
+        commit_url = repo_url / 'commits' / ref
+        async with ctx.http.web_client().get(
+            commit_url, expire_after=timedelta(minutes=5), headers=headers
+        ) as resp:
+            if resp.status == 404:
+                raise PkgFilesMissing(f'source ref not found: {ref}')
+            resp.raise_for_status()
+            commit_json: _GithubCommit = await resp.json()
+            return commit_json
+
+    async def __resolve_from_source(
+        self,
+        project: _GithubRepo,
+        repo_url: URL,
+        github_headers: dict[str, str],
+        defn: Defn,
+    ) -> PkgCandidate:
+        # Use VersionEq as explicit ref if provided, otherwise default_branch.
+        # VersionEq doubles as branch/tag/sha when #source is set — keeps DSL tiny.
+        ref = defn.strategies[Strategy.VersionEq] or project['default_branch']
+
+        commit = await self.__get_commit(repo_url, ref, github_headers)
+
+        sha = commit['sha']
+        raw_date = commit['commit']['committer']['date']
+        try:
+            date_published = datetime.fromisoformat(raw_date.replace('Z', '+00:00'))
+        except ValueError:
+            date_published = datetime.now().astimezone()
+
+        download_url = str(repo_url / 'zipball' / sha)
+
+        version = sha[:7]
+
+        return PkgCandidate(
+            id=str(project['id']),
+            slug=project['full_name'].lower(),
+            name=project['name'],
+            description=project['description'] or '',
+            url=project['html_url'],
+            download_url=download_url,
+            date_published=date_published,
+            version=version,
+            changelog_url='',
+        )
+
     async def resolve_one(self, defn: Defn, metadata: None):
         github_headers = self.make_request_headers()
 
@@ -416,7 +599,12 @@ class GithubResolver(BaseResolver):
                 return project
 
         version_eq = defn.strategies[Strategy.VersionEq]
-        if version_eq:
+        wants_source = defn.strategies[Strategy.Source]
+
+        # When source is requested, don't force a release lookup via tag if
+        # VersionEq is being used as a branch ref. The release endpoint
+        # would 404 and we'd incorrectly report "no releases".
+        if version_eq and not wants_source:
             release_url = repo_url / 'releases/tags' / version_eq
         else:
             # Includes pre-releases
@@ -445,19 +633,38 @@ class GithubResolver(BaseResolver):
             await cancel_tasks([releases_coro])
             raise
 
+        # Try to get releases, but allow fallback to source on 0 releases.
+        try:
+            releases_raw = await releases_coro
+        except PkgFilesMissing as exc:
+            if wants_source or str(exc) == 'no releases found':
+                # Implicit fallback when repo has no releases at all, unless
+                # an explicit version_eq was requested for a release tag.
+                if version_eq and not wants_source:
+                    raise
+                return await self.__resolve_from_source(project, repo_url, github_headers, defn)
+            raise
+
         # Only users with push access will get draft releases
         # but let's filter them out just in case.
-        releases = [r for r in await releases_coro if r['draft'] is False]
+        releases = [r for r in releases_raw if r['draft'] is False]
 
         # Allow pre-releases only if no stable releases exist or explicitly opted into.
         if not defn.strategies[Strategy.AnyReleaseType] and any(
             r['prerelease'] is False for r in releases
         ):
-            releases = (r for r in releases if r['prerelease'] is False)
+            releases = [r for r in releases if r['prerelease'] is False]
 
-        releases = iter(releases)
-        first_release = next(releases, None)
+        if not releases:
+            if wants_source:
+                return await self.__resolve_from_source(project, repo_url, github_headers, defn)
+            raise PkgFilesNotMatching(defn.strategies)
+
+        releases_iter = iter(releases)
+        first_release = next(releases_iter, None)
         if first_release is None:
+            if wants_source:
+                return await self.__resolve_from_source(project, repo_url, github_headers, defn)
             raise PkgFilesNotMatching(defn.strategies)
 
         desired_flavours = (ctx.config.config().product['flavour'],)
@@ -476,7 +683,7 @@ class GithubResolver(BaseResolver):
                 for release_task, _remaining_tasks in (
                     (t, g[o:])
                     # 3 groups of 3 run in parallel but processed in order
-                    for b in batched(releases, 3)
+                    for b in batched(releases_iter, 3)
                     for g in (
                         [asyncio.create_task(self.__find_match(r, desired_flavours)) for r in b],
                     )
@@ -492,6 +699,8 @@ class GithubResolver(BaseResolver):
         if match:
             release, asset = match
         else:
+            if wants_source:
+                return await self.__resolve_from_source(project, repo_url, github_headers, defn)
             raise PkgFilesNotMatching(defn.strategies)
 
         return PkgCandidate(
