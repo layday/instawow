@@ -1,6 +1,15 @@
 Changelog
 =========
 
+v7.2.1
+------
+
+CLI
+~~~
+
+- Fix macOS startup failure.
+
+
 v7.2.0
 ------
 
