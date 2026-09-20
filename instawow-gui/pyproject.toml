@@ -43,7 +43,7 @@ requires = [
 [tool.briefcase.app.instawow-gui-wrapper.macOS]
 universal_build = true
 requires = [
-  "std-nslog",
+  "std-nslog ~= 2.0.0",
 ]
 
 [tool.briefcase.app.instawow-gui-wrapper.linux]
