@@ -4,7 +4,7 @@ Changelog
 v7.2.1
 ------
 
-CLI
+GUI
 ~~~
 
 - Fix macOS startup failure.
