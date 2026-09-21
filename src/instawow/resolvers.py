@@ -4,45 +4,15 @@ import datetime as dt
 import enum
 from collections.abc import AsyncIterator, Sequence
 from contextlib import AbstractContextManager
-from functools import partial, wraps
 from pathlib import Path
 from typing import Literal, Never, NotRequired, Protocol, Self, overload
 
 from typing_extensions import TypedDict
-from yarl import URL
 
 from . import pkg_archives, wow_installations
 from ._utils.attrs import fauxfrozen
 from .definitions import Defn, SourceMetadata
-from .results import AnyResult, PkgStrategiesUnsupported, resultify
-
-
-class _AccessTokenGetter[R](Protocol):  # pragma: no cover
-    def __call__(self) -> tuple[str | None, R]: ...
-
-
-class AccessTokenMissingError(ValueError):
-    def __str__(self) -> str:
-        return 'access token missing'
-
-
-@fauxfrozen
-class AccessToken[RequiredT: bool]:
-    getter: _AccessTokenGetter[RequiredT]
-
-    @overload
-    def get(self: AccessToken[Literal[True]]) -> str: ...
-    @overload
-    def get(self: AccessToken[bool]) -> str | None: ...
-    def get(self) -> str | None:
-        access_token, required = self.getter()
-        if required and access_token is None:
-            raise AccessTokenMissingError
-        return access_token
-
-
-class HeadersIntent(enum.IntEnum):
-    Download = enum.auto()
+from .results import AnyResult
 
 
 class PkgCandidate(TypedDict):
@@ -83,7 +53,7 @@ class _CatalogueEntryCandidate_SameAs(TypedDict):
     id: str
 
 
-class Resolver[ResolveMetadataT = Never](Protocol):  # pragma: no cover
+class Resolver(Protocol):  # pragma: no cover
     metadata: SourceMetadata
     'Static source metadata.'
 
@@ -104,11 +74,7 @@ class Resolver[ResolveMetadataT = Never](Protocol):  # pragma: no cover
         ...
 
     async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[PkgCandidate]]:
-        "Resolve multiple ``Defn``s into packages."
-        ...
-
-    async def resolve_one(self, defn: Defn, metadata: ResolveMetadataT | None) -> PkgCandidate:
-        "Resolve a ``Defn`` into a package."
+        "Resolve ``Defn``s into packages."
         ...
 
     async def get_changelog(self, url: str) -> str:
@@ -120,24 +86,57 @@ class Resolver[ResolveMetadataT = Never](Protocol):  # pragma: no cover
         ...
 
 
-class BaseResolver[ResolveMetadataT = Never](Resolver[ResolveMetadataT], Protocol):
+class _AccessTokenGetter[R](Protocol):  # pragma: no cover
+    def __call__(self) -> tuple[str | None, R]: ...
+
+
+class AccessTokenMissingError(ValueError):
+    def __str__(self) -> str:
+        return 'access token missing'
+
+
+@fauxfrozen
+class AccessToken[RequiredT: bool]:
+    getter: _AccessTokenGetter[RequiredT]
+
+    @overload
+    def get(self: AccessToken[Literal[True]]) -> str: ...
+    @overload
+    def get(self: AccessToken[bool]) -> str | None: ...
+    def get(self) -> str | None:
+        access_token, required = self.getter()
+        if required and access_token is None:
+            raise AccessTokenMissingError
+        return access_token
+
+
+class HeadersIntent(enum.IntEnum):
+    Download = enum.auto()
+
+
+class BaseResolver[ResolveMetadataT = Never](Resolver, Protocol):
     access_token: AccessToken[bool] | None = None
     'Access token retriever.'
 
     def __init_subclass__(cls) -> None:
+
+        from functools import wraps
+
+        from .results import PkgStrategiesUnsupported
+
         super().__init_subclass__()
 
         old_resolve_one = cls.resolve_one
-        reassign_resolve_one = partial(setattr, cls, 'resolve_one')
 
-        @reassign_resolve_one
         @wraps(old_resolve_one)
-        async def _(self: Self, defn: Defn, metadata: ResolveMetadataT | None):
+        async def new_resolve_one(self: Self, defn: Defn, metadata: ResolveMetadataT | None):
             extraneous_strategies = defn.strategies.filled.keys() - self.metadata.strategies
             if extraneous_strategies:
                 raise PkgStrategiesUnsupported(extraneous_strategies)
 
             return await old_resolve_one(self, defn, metadata)
+
+        cls.resolve_one = new_resolve_one
 
     def get_disabled_reason(self) -> str | None:
         if self.access_token:
@@ -153,7 +152,9 @@ class BaseResolver[ResolveMetadataT = Never](Resolver[ResolveMetadataT], Protoco
         )
 
     def open_pkg_archive(self, archive_path: Path) -> AbstractContextManager[pkg_archives.Archive]:
-        return pkg_archives.open_zip_archive(archive_path)
+        from .pkg_archives import open_zip_archive
+
+        return open_zip_archive(archive_path)
 
     def get_alias_from_url(self, url: str) -> str | None:
         return None
@@ -162,8 +163,10 @@ class BaseResolver[ResolveMetadataT = Never](Resolver[ResolveMetadataT], Protoco
         return None
 
     async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[PkgCandidate]]:
+
         from ._utils.aio import gather
         from .progress_reporting import make_incrementing_progress_tracker
+        from .results import resultify
 
         track_progress = make_incrementing_progress_tracker(
             len(defns), f'Resolving add-ons: {self.metadata.name}'
@@ -172,7 +175,14 @@ class BaseResolver[ResolveMetadataT = Never](Resolver[ResolveMetadataT], Protoco
         results = await gather(track_progress(resolve_one(d, None)) for d in defns)
         return dict(zip(defns, results))
 
+    async def resolve_one(self, defn: Defn, metadata: ResolveMetadataT | None) -> PkgCandidate:
+        "Resolve a ``Defn`` into a package."
+        ...
+
     async def get_changelog(self, url: str) -> str:
+
+        from yarl import URL
+
         match URL(url):
             case URL(scheme='data') as urly if urly.raw_path.startswith(','):
                 import urllib.parse

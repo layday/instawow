@@ -73,11 +73,11 @@ async def test_resolve_rewraps_exception_from_resolve(
     monkeypatch: pytest.MonkeyPatch,
     exception: Exception,
 ):
-    async def resolve_one(defn, metadata):
+    async def resolve(defns):
         raise exception
 
     resolvers = ctx.config.resolvers()
-    monkeypatch.setattr(resolvers['curse'], 'resolve_one', resolve_one)
+    monkeypatch.setattr(resolvers['curse'], 'resolve', resolve)
 
     defn = Defn('curse', 'masque')
     result = (await pkg_management.resolve([defn]))[defn]
