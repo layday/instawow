@@ -29,7 +29,7 @@ dynamic = [
 ]
 
 [project.scripts]
-"instawow" = "instawow.cli:main"
+"instawow" = "instawow.__main__:main"
 
 [project.entry-points."instawow.plugins"]
 "instawow-weakaura-updater" = "instawow_weakaura_updater._plugin"
