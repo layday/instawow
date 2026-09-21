@@ -7,7 +7,7 @@ description: Build instawow packages.
 inputs:
   python-version:
     required: false
-    default: "3.13"
+    default: "3.14"
     description: The Python version to use.
 outputs:
   version:
