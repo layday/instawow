@@ -88,23 +88,19 @@ class Resolver[ResolveMetadataT = Never](Protocol):  # pragma: no cover
     'Static source metadata.'
 
     def get_disabled_reason(self) -> str | None:
-        "Reason the resolver might be disabled."
+        "Get reason the resolver might be disabled."
         ...
 
     async def download_pkg_archive(self, defn: Defn, url: str) -> Path:
-        "Package archive downloader."
+        "Download a package archive."
         ...
 
     def open_pkg_archive(self, archive_path: Path) -> AbstractContextManager[pkg_archives.Archive]:
-        "Package archive opener."
+        "Open a package archive."
         ...
 
     def get_alias_from_url(self, url: str) -> str | None:
         "Attempt to extract a ``Defn`` alias from a given URL."
-        ...
-
-    def make_request_headers(self, intent: HeadersIntent | None = None) -> dict[str, str] | None:
-        "Create headers for resolver HTTP requests."
         ...
 
     async def resolve(self, defns: Sequence[Defn]) -> dict[Defn, AnyResult[PkgCandidate]]:
@@ -152,7 +148,9 @@ class BaseResolver[ResolveMetadataT = Never](Resolver[ResolveMetadataT], Protoco
     async def download_pkg_archive(self, defn: Defn, url: str) -> Path:
         from .pkg_archives._download import download_pkg_archive
 
-        return await download_pkg_archive(defn, url)
+        return await download_pkg_archive(
+            defn, url, request_headers=self.make_request_headers(HeadersIntent.Download)
+        )
 
     def open_pkg_archive(self, archive_path: Path) -> AbstractContextManager[pkg_archives.Archive]:
         return pkg_archives.open_zip_archive(archive_path)

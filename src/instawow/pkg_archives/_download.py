@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from contextlib import asynccontextmanager, nullcontext
 from functools import partial
 from pathlib import Path
@@ -13,7 +14,6 @@ from .._utils.file import make_instawowt
 from .._utils.web import file_uri_to_path, is_file_uri
 from ..definitions import Defn
 from ..progress_reporting import Progress
-from ..resolvers import HeadersIntent
 
 
 class PkgDownloadProgress(Progress[Literal['pkg_download'], Literal['bytes']]):
@@ -46,7 +46,12 @@ async def _open_temp_writer_async():
         await run_in_thread(fh.close)()
 
 
-async def download_pkg_archive(defn: Defn, download_url: str) -> Path:
+async def download_pkg_archive(
+    defn: Defn,
+    download_url: str,
+    *,
+    request_headers: Mapping[str, str] | None = None,
+) -> Path:
     if is_file_uri(download_url):
         return Path(file_uri_to_path(download_url))
 
@@ -55,9 +60,7 @@ async def download_pkg_archive(defn: Defn, download_url: str) -> Path:
             ctx.http.web_client().get,
             download_url,
             expire_after=http.CACHE_INDEFINITELY,
-            headers=ctx.config.resolvers()[defn.source].make_request_headers(
-                intent=HeadersIntent.Download
-            ),
+            headers=request_headers,
             trace_request_ctx={
                 'progress': PkgDownloadProgress(
                     type_='pkg_download',
