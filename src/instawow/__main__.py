@@ -35,6 +35,14 @@ def main():
     if sys.version_info >= (3, 15):
         sys.set_lazy_imports('all')
 
+        @sys.set_lazy_imports_filter
+        def _(
+            importing_module: str | None, imported_module: str, fromlist: tuple[str, ...] | None
+        ):
+            return importing_module not in {
+                'truststore',
+            }
+
     else:
         import instawow
 
