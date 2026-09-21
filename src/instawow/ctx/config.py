@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 import contextvars as cv
-from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from contextlib import AbstractContextManager
 from functools import cached_property
 from itertools import chain
-from pathlib import Path
 from typing import Self
 
 from .. import config as _config
 from .. import definitions, pkg_db
 from .. import resolvers as _resolvers
 from .._utils.attrs import fauxfrozen
-from ..results import AnyResult, PkgSourceDisabled, PkgSourceInvalid, resultify
+from ..results import AnyResult, PkgSourceDisabled, PkgSourceInvalid
 
 _config_party_var: cv.ContextVar[ConfigParty | Callable[[], _config.ProfileConfig]] = (
     cv.ContextVar('_config_party_var')
@@ -59,23 +58,8 @@ class _Resolvers(dict[str, '_resolvers.Resolver']):
         return {r.metadata.id: d for r in self.values() for d in (r.get_disabled_reason(),) if d}
 
     @cached_property
-    def pkg_downloaders(self) -> _ResolverPkgDownloaders:
-        return _ResolverPkgDownloaders(self)
-
-    @cached_property
     def priorities(self) -> _ResolverPriorities:
         return _ResolverPriorities(self)
-
-
-class _ResolverPkgDownloaders(
-    dict[str, Callable[[definitions.Defn, str], Awaitable[AnyResult[Path]]]]
-):
-    def __init__(self, resolvers: _Resolvers) -> None:
-        self.__resolvers = resolvers
-
-    def __missing__(self, key: str):
-        downloader = self[key] = resultify(self.__resolvers[key].download_pkg_archive)
-        return downloader
 
 
 class _ResolverPriorities(dict[str, float]):

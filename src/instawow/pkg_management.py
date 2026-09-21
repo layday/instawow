@@ -622,7 +622,7 @@ async def install(
         }
 
     download_results = await gather(
-        resolvers.pkg_downloaders[d.source](d, r['download_url'])
+        resultify(resolvers[d.source].download_pkg_archive)(d, r['download_url'])
         for d, r in pkg_candidates.items()
     )
     archive_paths, download_errors = split_results(zip(pkg_candidates, download_results))
@@ -679,7 +679,7 @@ async def replace(
     results = results | resolve_errors
 
     download_results = await gather(
-        resolvers.pkg_downloaders[d.source](d, r['download_url'])
+        resultify(resolvers[d.source].download_pkg_archive)(d, r['download_url'])
         for d, r in pkg_candidates.items()
     )
     archive_paths, download_errors = split_results(zip(pkg_candidates, download_results))
@@ -763,7 +763,7 @@ async def update(
         }
 
     download_results = await gather(
-        resolvers.pkg_downloaders[d.source](d, n['download_url'])
+        resultify(resolvers[d.source].download_pkg_archive)(d, n['download_url'])
         for d, (_, n) in updatables.items()
     )
     archive_paths, download_errors = split_results(zip(updatables, download_results))

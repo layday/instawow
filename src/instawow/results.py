@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Awaitable, Callable, Collection, Set
-from functools import wraps
+from functools import cache, wraps
 from typing import Any, Literal, LiteralString, Protocol, TypeIs, overload
 
 from .definitions import Strategies, Strategy
@@ -192,6 +192,7 @@ def resultify[**P, T](fn: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[An
 def resultify[**P, T](fn: Callable[P, T]) -> Callable[P, AnyResult[T]]: ...
 
 
+@cache
 def resultify[**P](fn: Callable[P, object]):  # pyright: ignore[reportInconsistentOverload]
     "Capture raw errors and wrap them around ``InternalError``."
 
