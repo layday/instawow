@@ -14,14 +14,14 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        python = pkgs.python314;
+        python = pkgs.python315;
       in
       {
         devShells.default = pkgs.mkShell {
           nativeBuildInputs = [
             pkgs.uv
             python
-            (python.pkgs.nox.overridePythonAttrs (old: {
+            (pkgs.python314.pkgs.nox.overridePythonAttrs (old: {
               # Propagating dependencies leaks them through $PYTHONPATH which causes issues
               # when used in nix-shell.
               postFixup = ''
