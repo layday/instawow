@@ -1,7 +1,7 @@
 ---
 name: Create instawow executables
 
-permissions : {}
+permissions: {}
 
 on: [workflow_dispatch]
 concurrency:
@@ -144,6 +144,8 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     needs: [freeze-cli, freeze-gui]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for release step.
     steps:
       # - uses: GitHubSecurityLab/actions-permissions/monitor@v1
       #   with:

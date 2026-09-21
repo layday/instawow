@@ -1,7 +1,7 @@
 ---
 name: Package builder
 
-permissions : {}
+permissions: {}
 
 description: Build instawow packages.
 inputs:
