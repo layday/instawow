@@ -9,7 +9,7 @@ authors = [{ name = "layday", email = "layday@protonmail.com" }]
 urls."homepage" = "http://github.com/layday/instawow"
 dependencies = [
   "aiohttp-client-cache >= 0.14.2",
-  "aiohttp >= 3.13.0",
+  "aiohttp >= 3.14.0",
   "attrs >= 25.4.0",
   "cattrs >= 25.3.0",
   "click >= 8.4.1",
@@ -22,7 +22,7 @@ dependencies = [
   "truststore >= 0.10.4",
   "typing-extensions >= 4.15.0",
   "wcwidth >= 0.2.14",
-  "yarl >= 1.23.0",
+  "yarl >= 1.24.2",
 ]
 dynamic = [
   "version",
