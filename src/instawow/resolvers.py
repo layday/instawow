@@ -175,6 +175,8 @@ class BaseResolver[ResolveMetadataT = Never](Resolver[ResolveMetadataT], Protoco
         return dict(zip(defns, results))
 
     async def get_changelog(self, url: str) -> str:
+        if not url:
+            return 'No changelog provided.'
         match URL(url):
             case URL(scheme='data') as urly if urly.raw_path.startswith(','):
                 import urllib.parse
