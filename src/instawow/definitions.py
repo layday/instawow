@@ -14,6 +14,7 @@ class Strategy(StrEnum):
     AnyFlavour = 'any_flavour'
     AnyReleaseType = 'any_release_type'
     VersionEq = 'version_eq'
+    Source = 'source'
 
 
 class ChangelogFormat(StrEnum):
@@ -42,6 +43,8 @@ class Strategies(Mapping[Strategy, object], Hashable):
     def __getitem__(self, key: Literal[Strategy.AnyFlavour], /) -> Literal[True] | None: ...
     @overload
     def __getitem__(self, key: Literal[Strategy.AnyReleaseType], /) -> Literal[True] | None: ...
+    @overload
+    def __getitem__(self, key: Literal[Strategy.Source], /) -> Literal[True] | None: ...
     @overload
     def __getitem__(self, key: Literal[Strategy.VersionEq], /) -> str | None: ...
     @overload
@@ -116,6 +119,7 @@ class Defn:
                         Strategy.AnyFlavour: Strategy.AnyFlavour in strategy_values or None,
                         Strategy.AnyReleaseType: Strategy.AnyReleaseType in strategy_values
                         or None,
+                        Strategy.Source: Strategy.Source in strategy_values or None,
                         Strategy.VersionEq: strategy_values.get(Strategy.VersionEq),
                     }
                 ),

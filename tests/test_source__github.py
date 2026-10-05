@@ -13,7 +13,7 @@ from yarl import URL
 from instawow import ctx
 from instawow._sources.github import GithubResolver, _PackagerReleaseJsonFlavor
 from instawow.definitions import Defn, Strategies, Strategy
-from instawow.results import PkgFilesMissing, PkgFilesNotMatching, PkgNonexistent
+from instawow.results import PkgFilesNotMatching, PkgNonexistent
 from instawow.wow_installations import (
     Flavour,
     FlavourVersions,
@@ -145,10 +145,14 @@ async def test_repo_without_releases(
 ):
     defn = Defn('github', 'AdiAddons/AdiBags')
 
-    with pytest.raises(PkgFilesMissing) as exc_info:
-        await github_resolver.resolve_one(defn, None)
-
-    assert str(exc_info.value) == 'no releases found'
+    # With source fallback, repos with no releases should resolve via source
+    result = await github_resolver.resolve_one(defn, None)
+    assert type(result) is dict
+    assert result['id'] == '639034'
+    assert result['version'] == 'abc123d'  # 7-char short sha from mock
+    assert result['changelog_url'] == ''
+    # No longer raises PkgFilesMissing unless explicit version_eq blocks fallback
+    # Original behaviour: PkgFilesMissing('no releases found')
 
 
 async def test_nonexistent_repo(
