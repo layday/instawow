@@ -65,12 +65,12 @@ jobs:
         with:
           name: packages
           path: ./dist
-      - name: Install uv for Python 3.14
+      - name: Install uv for Python 3.15
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - name: Install nox
-        run: uv tool install -p 3.14 nox
+        run: uv tool install -p 3.15 nox
       - name: Install Rust
         run: rustup update stable
       - name: Add build target
@@ -118,18 +118,18 @@ jobs:
       - name: Install briefcase Linux dependencies
         run: sudo apt-get update --fix-missing && sudo apt-get install -y flatpak-builder
         if: startsWith(matrix.build-env.os, 'ubuntu-')
-      - name: Install uv for Python 3.14
+      - name: Install uv for Python 3.15
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - name: Install nox
-        run: uv tool install -p 3.14 nox
+        run: uv tool install -p 3.15 nox
       - name: Freeze the GUI
         run: >-
           nox
           --error-on-missing-interpreters
-          --force-python 3.14
-          -s freeze_gui-3.14
+          --force-python 3.15
+          -s freeze_gui-3.15
           --
           ${{ startsWith(github.ref, 'refs/tags/') && '--release' || '' }}
       - name: Upload artifact

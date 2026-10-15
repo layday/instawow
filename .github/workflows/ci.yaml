@@ -36,13 +36,15 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         python:
-          - "3.13"
           - "3.14"
+          - "3.15"
         include:
+          - os: ubuntu-latest
+            python: "3.13"
           - os: ubuntu-latest
             python: "3.14t"
           - os: ubuntu-latest
-            python: "3.15"
+            python: "3.15t"
     runs-on: ${{ matrix.os }}
     steps:
       # - uses: GitHubSecurityLab/actions-permissions/monitor@v1
@@ -91,11 +93,11 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         python:
-          - "3.13"
           - "3.14"
-        # include:
-        #   - os: ubuntu-latest
-        #     python: "3.14t"
+          - "3.15"
+        include:
+          - os: ubuntu-latest
+            python: "3.13"
     runs-on: ${{ matrix.os }}
     steps:
       # - uses: GitHubSecurityLab/actions-permissions/monitor@v1

@@ -180,7 +180,7 @@ def freeze_cli(session: nox.Session):
     import shutil
     import tempfile
 
-    PYAPP_VERSION = 'v0.27.0'
+    PYAPP_VERSION = 'v0.30.0'
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--out-dir', required=True)
@@ -192,7 +192,7 @@ def freeze_cli(session: nox.Session):
         'PYAPP_PROJECT_PATH': os.fspath(Path(packages['instawow']['wheel-path']).absolute()),
         'PYAPP_EXEC_MODULE': 'instawow',
         'PYAPP_FULL_ISOLATION': '1',
-        'PYAPP_PYTHON_VERSION': '3.14',
+        'PYAPP_PYTHON_VERSION': '3.15',
         'PYAPP_DISTRIBUTION_EMBED': '1',
         'PYAPP_PIP_EXTRA_ARGS': '--only-binary :all:',
         'PYAPP_UV_ENABLED': '1',
