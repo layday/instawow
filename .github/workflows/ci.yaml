@@ -137,12 +137,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Install uv for Python 3.14
+      - name: Install uv for Python 3.15
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - name: Install nox
-        run: uv tool install -p 3.14 nox
+        run: uv tool install -p 3.15 nox
       - name: Install Node for Prettier
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
         with:
@@ -168,12 +168,12 @@ jobs:
         with:
           pattern: coverage-data-*
           merge-multiple: true
-      - name: Install uv for Python 3.14
+      - name: Install uv for Python 3.15
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       - name: Install nox
-        run: uv tool install -p 3.14 nox
+        run: uv tool install -p 3.15 nox
       - name: Produce coverage report
         run: |
           nox -s report_coverage
