@@ -40,6 +40,7 @@ def main():
             importing_module: str | None, imported_module: str, fromlist: tuple[str, ...] | None
         ):
             return importing_module not in {
+                'rubicon.objc',
                 'truststore',
             }
 
