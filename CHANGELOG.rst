@@ -4,6 +4,15 @@ Changelog
 v7.2.1
 ------
 
+GUI
+~~~
+
+- Fix another macOS startup failure.
+
+
+v7.2.1
+------
+
 - Set 3.15 as the default Python version.
 
 GUI
