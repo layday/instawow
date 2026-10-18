@@ -1,7 +1,17 @@
 Changelog
 =========
 
-v7.2.1
+
+v7.2.4
+------
+
+CLI
+~~~
+
+- Fix lazily importing `rapidfuzz`.
+
+
+v7.2.3
 ------
 
 GUI
@@ -10,7 +20,7 @@ GUI
 - Fix another macOS startup failure.
 
 
-v7.2.1
+v7.2.2
 ------
 
 - Set 3.15 as the default Python version.
