@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import os
-import unittest.mock
 from pathlib import Path
 from typing import Any
+from unittest import mock
 
 import prompt_toolkit.application
 import prompt_toolkit.input
 import prompt_toolkit.output
-import prompt_toolkit.shortcuts.progress_bar
 import pytest
 
 import instawow._logging
@@ -160,14 +159,11 @@ async def _iw_mock_aiohttp_requests(
     iw_add_routes(*routes)
 
 
-@pytest.fixture
-def iw_mock_pt_progress_bar():
+@pytest.fixture(scope='module')
+def _iw_mock_pt_progress_bar():
     with pytest.MonkeyPatch.context() as context:
-        progress_bar_cls = unittest.mock.create_autospec(
-            prompt_toolkit.shortcuts.progress_bar.ProgressBar,
-        )
-        context.setattr(prompt_toolkit.shortcuts.progress_bar, 'ProgressBar', progress_bar_cls)
-        yield progress_bar_cls
+        context.setattr('prompt_toolkit.shortcuts.progress_bar.ProgressBar', mock.MagicMock())
+        yield
 
 
 @pytest.fixture
