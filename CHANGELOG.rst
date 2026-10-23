@@ -2,13 +2,19 @@ Changelog
 =========
 
 
+v7.3.0
+------
+
+- Add support for new `_forever_` product folder.
+
+
 v7.2.4
 ------
 
 CLI
 ~~~
 
-- Fix lazily importing `rapidfuzz`.
+- Fix lazily importing ``rapidfuzz``.
 
 
 v7.2.3
@@ -48,7 +54,7 @@ v7.2.0
 CLI
 ~~~
 
-- Fix `list` format capitalisation.
+- Fix ``list`` format capitalisation.
 
 
 v7.1.0
@@ -60,7 +66,7 @@ v7.1.0
 CLI
 ~~~
 
-- Merge `debug` subcommands into a single command.
+- Merge ``debug`` subcommands into a single command.
 
 
 v7.0.0
