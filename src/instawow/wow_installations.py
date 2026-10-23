@@ -163,6 +163,7 @@ PRODUCTS: list[_Product] = [
     {'code': 'wowdev2', 'flavour': Flavour.ForeverClassic, 'subfolder': '_classic_alpha_'},
     {'code': 'wowdev5', 'flavour': Flavour.ForeverClassic, 'subfolder': '_wowdev5_'},
     {'code': 'wowe1', 'flavour': Flavour.Mainline, 'subfolder': '_event1_'},
+    {'code': 'wowf', 'flavour': Flavour.ForeverClassic, 'subfolder': '_forever_'},
     {'code': 'wowlivetest', 'flavour': Flavour.Mainline, 'subfolder': '_dark_realm_'},
     {'code': 'wowlivetest2', 'flavour': Flavour.Mainline, 'subfolder': '_dark_realm_2_'},
     {'code': 'wowt', 'flavour': Flavour.Mainline, 'subfolder': '_ptr_'},
@@ -172,13 +173,14 @@ PRODUCTS: list[_Product] = [
     {'code': 'wowv3', 'flavour': Flavour.Mainline, 'subfolder': '_vendor3_'},
     {'code': 'wowv4', 'flavour': Flavour.VanillaClassic, 'subfolder': '_vendor4_'},
     {'code': 'wowv5', 'flavour': Flavour.TbcClassic, 'subfolder': '_vendor5_'},
-    {'code': 'wowv6', 'flavour': Flavour.VanillaClassic, 'subfolder': '_vendor6_'},
+    {'code': 'wowv6', 'flavour': Flavour.ForeverClassic, 'subfolder': '_vendor6_'},
     {'code': 'wowv7', 'flavour': Flavour.MistsClassic, 'subfolder': '_vendor7_'},
     {'code': 'wowv8', 'flavour': Flavour.Mainline, 'subfolder': '_vendor8_'},
     {'code': 'wowv9', 'flavour': Flavour.TitanClassic, 'subfolder': '_vendor9_'},
     {'code': 'wowxptr', 'flavour': Flavour.Mainline, 'subfolder': '_xptr_'},
     {'code': 'wowz', 'flavour': Flavour.VanillaClassic, 'subfolder': '_submission_'},
 ]
+
 _SUBFOLDERS_TO_PRODUCTS = {p['subfolder']: p for p in PRODUCTS}
 
 _ADDON_DIR_PARTS = ('Interface', 'AddOns')
