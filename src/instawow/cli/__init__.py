@@ -69,7 +69,7 @@ def run_with_progress[T](awaitable: Awaitable[T], **params: Any) -> T:
     click_ctx = click.get_current_context().find_root()
     params = click_ctx.params | params
 
-    suppress_progress = params['verbosity'] > 0
+    suppress_progress = params['no_progress'] or params['verbosity'] > 0
     make_init_web_client = partial(init_web_client, with_progress=not suppress_progress)
 
     if params['no_cache']:
@@ -287,7 +287,7 @@ class _ListFormat(enum.StrEnum):
     '-v',
     'verbosity',
     count=True,
-    help='Log incrementally more things.  Additive.',
+    help='Log incrementally more things.  Implies `--no-progress`.',
 )
 @click.option(
     '--no-cache',
@@ -296,12 +296,23 @@ class _ListFormat(enum.StrEnum):
     help='Disable the HTTP cache.',
 )
 @click.option(
+    '--no-progress',
+    is_flag=True,
+    default=False,
+    help='Disable the progress indicator.',
+)
+@click.option(
     '--profile',
     '-p',
     default='__default__',
     help='Activate the specified profile.',
 )
-def cli(verbosity: int, no_cache: bool, profile: str):
+def cli(
+    verbosity: int,
+    no_cache: bool,
+    no_progress: bool,
+    profile: str,
+):
     "Add-on manager for World of Warcraft."
 
     from .._logging import setup_logging

@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import shutil
+import unittest.mock
 from functools import partial
 from textwrap import dedent
 from unittest import mock
@@ -16,7 +17,7 @@ from instawow.config import ProfileConfig
 from instawow.config._helpers import make_display_converter
 
 pytestmark = pytest.mark.usefixtures(
-    '_iw_config_ctx', '_iw_web_client_ctx', '_iw_mock_pt_progress_bar', '_iw_mock_asyncio_run'
+    '_iw_config_ctx', '_iw_web_client_ctx', '_iw_mock_asyncio_run', 'iw_mock_pt_progress_bar'
 )
 
 
@@ -596,3 +597,25 @@ def test_clear_cache(
     assert iw_profile_config.global_config.dirs.cache.is_dir()
     assert run('cache clear').exit_code == 0
     assert not iw_profile_config.global_config.dirs.cache.is_dir()
+
+
+def test_progress_is_rendered(
+    iw_mock_pt_progress_bar: unittest.mock.MagicMock,
+):
+    run('install curse:masque')
+    iw_mock_pt_progress_bar.assert_called()
+
+
+@pytest.mark.parametrize(
+    'flag',
+    [
+        pytest.param('--no-progress', id='no-progress'),
+        pytest.param('-v', id='verbosity'),
+    ],
+)
+def test_progress_is_suppressed(
+    iw_mock_pt_progress_bar: unittest.mock.MagicMock,
+    flag: str,
+):
+    run(f'{flag} install curse:masque')
+    iw_mock_pt_progress_bar.assert_not_called()
