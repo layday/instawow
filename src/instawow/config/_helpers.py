@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 import os
 from collections.abc import Mapping
-from functools import lru_cache, partial
+from functools import lru_cache
 from pathlib import Path
-from typing import Any, Literal, NewType, TypedDict
+from typing import Any, Literal, TypedDict
 
 import attrs
 import cattrs
@@ -19,7 +19,9 @@ class FieldMetadata(TypedDict, total=False):
     store_alias: str
 
 
-SecretStr = NewType('SecretStr', str)
+class SecretStr(str):
+    def __repr__(self) -> str:
+        return '*' * 10
 
 
 class UninitialisedConfigError(Exception):
@@ -44,9 +46,7 @@ def make_display_converter():
 
     converter = make_config_converter()
 
-    @partial(converter.register_unstructure_hook, SecretStr)
-    def _(value: SecretStr):
-        return '*' * 10
+    converter.register_unstructure_hook(SecretStr, repr)
 
     @converter.register_unstructure_hook_factory(attrs.has)
     def _[T](cls: type[T], converter: cattrs.Converter):
