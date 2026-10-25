@@ -750,7 +750,7 @@ def list_installed(addons: Sequence[definitions.Defn], output_format: _ListForma
                 SELECT *
                 FROM pkg
                 {where_clause}
-                ORDER BY source, lower(name)
+                ORDER BY source, lower(slug)
             """,
             where_params,
         ).fetchall()
