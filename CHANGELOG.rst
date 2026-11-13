@@ -2,10 +2,16 @@ Changelog
 =========
 
 
+v7.3.1
+------
+
+- Exclude all ``rapidfuzz`` submodules from lazy import mechanism.
+
+
 v7.3.0
 ------
 
-- Add support for new `_forever_` product folder.
+- Add support for new ``_forever_`` product folder.
 
 
 v7.2.4
