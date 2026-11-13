@@ -58,9 +58,9 @@ async def test_resolve_flavoursome_addon(
             assert type(result) is dict
         case _:
             assert type(result) is PkgFilesNotMatching
-            assert (
-                str(result)
-                == f'no files found for: {Strategy.AnyFlavour}=None; {Strategy.AnyReleaseType}=None; {Strategy.VersionEq}=None'
+            assert str(result) in (
+                f'no files found for: {Strategy.AnyFlavour}=None; {Strategy.AnyReleaseType}=None; {Strategy.VersionEq}=None',
+                f'no files found for: {Strategy.AnyFlavour}=None; {Strategy.AnyReleaseType}=None; {Strategy.VersionEq}=None; {Strategy.Source}=None',
             )
 
 

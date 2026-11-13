@@ -180,9 +180,10 @@ class BaseResolver[ResolveMetadataT = Never](Resolver, Protocol):
         ...
 
     async def get_changelog(self, url: str) -> str:
-
         from yarl import URL
 
+        if not url:
+            return 'No changelog provided.'
         match URL(url):
             case URL(scheme='data') as urly if urly.raw_path.startswith(','):
                 import urllib.parse

@@ -273,8 +273,8 @@ async def test_get_changelog_from_url_encoded_data_url():
 
 
 async def test_get_malformed_changelog():
-    with pytest.raises(ValueError, match='Unsupported URL with scheme'):
-        await pkg_management.get_changelog('github', '')
+    # Empty changelog URL now returns placeholder (source installs)
+    assert await pkg_management.get_changelog('github', '') == 'No changelog provided.'
 
 
 async def test_get_changelog_from_file_uri(
